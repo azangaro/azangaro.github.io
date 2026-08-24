@@ -149,6 +149,16 @@
     border:1px solid var(--border); box-shadow:var(--shadow);
   }
   .score-panel h3{ font-size:18px; margin:0 0 18px; }
+  .back-to-list{
+    background:none; color:var(--text-dim); font-size:13px; font-weight:600; padding:0 0 14px;
+    display:block;
+  }
+  .back-to-list:hover{ color:var(--accent); }
+  .panel-total{
+    text-align:center; font-family:'Space Mono',monospace; font-weight:700; font-size:17px;
+    color:var(--accent); background:var(--accent-soft); border-radius:var(--radius-sm);
+    padding:10px; margin-bottom:6px;
+  }
   .criterio-row{ margin-bottom:18px; }
   .criterio-row label{ display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px; margin-bottom:8px; color:var(--text-dim); font-weight:500; }
   .criterio-row input[type=range]{ width:100%; accent-color:var(--accent); height:6px; }
@@ -470,6 +480,16 @@ async function entrarPanelJuez() {
   renderParticipantesJuez();
 }
 
+function calcularTotalParticipante(participanteId) {
+  let total = 0;
+  let count = 0;
+  STATE.criterios.forEach(c => {
+    const key = participanteId + '|' + c.ID;
+    if (key in STATE.misPuntajes) { total += Number(STATE.misPuntajes[key]); count++; }
+  });
+  return count === STATE.criterios.length ? total : null;
+}
+
 function renderParticipantesJuez() {
   const wrap = document.getElementById('participantes-list');
   wrap.innerHTML = '';
@@ -482,13 +502,14 @@ function renderParticipantesJuez() {
       lbl.textContent = p.Categoria;
       wrap.appendChild(lbl);
     }
-    const scored = STATE.criterios.every(c => (p.ID + '|' + c.ID) in STATE.misPuntajes);
+    const total = calcularTotalParticipante(p.ID);
+    const scored = total !== null;
     const row = document.createElement('div');
     row.className = 'participante-row' + (scored ? ' done' : '');
     row.innerHTML = `
       <div>
         <div class="name">${p.Nombre}</div>
-        <div class="status">${scored ? '✓ Calificado' : 'Pendiente'}</div>
+        <div class="status">${scored ? `✓ Calificado — ${total.toFixed(1)} pts` : 'Pendiente'}</div>
       </div>
       <button>${scored ? 'Editar' : 'Calificar'}</button>`;
     row.querySelector('button').onclick = () => abrirPanelPuntuacion(p);
@@ -497,6 +518,7 @@ function renderParticipantesJuez() {
 }
 
 function abrirPanelPuntuacion(participante) {
+  document.getElementById('participantes-list').classList.add('hidden');
   const wrap = document.getElementById('score-panel-wrap');
   const valores = {};
   STATE.criterios.forEach(c => {
@@ -505,12 +527,14 @@ function abrirPanelPuntuacion(participante) {
 
   wrap.innerHTML = `
     <div class="score-panel">
+      <button class="back-to-list" id="btn-volver">&larr; Volver a la lista</button>
       <h3>${participante.Nombre}</h3>
       ${STATE.criterios.map(c => `
         <div class="criterio-row">
           <label><span>${c.Nombre}</span><span class="val" id="val-${c.ID}">${valores[c.ID]} / ${c.PesoMax}</span></label>
           <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}">
         </div>`).join('')}
+      <div class="panel-total" id="panel-total"></div>
       <div class="panel-actions">
         <button class="cancel-btn" id="btn-cancelar">Cancelar</button>
         <button class="primary-btn" id="btn-guardar">Guardar puntajes</button>
@@ -518,14 +542,28 @@ function abrirPanelPuntuacion(participante) {
       <div class="save-status" id="save-status"></div>
     </div>`;
 
+  function actualizarTotalPanel() {
+    let total = 0;
+    STATE.criterios.forEach(c => { total += Number(document.getElementById(`range-${c.ID}`).value); });
+    document.getElementById('panel-total').textContent = `Total: ${total.toFixed(1)} pts`;
+  }
+  actualizarTotalPanel();
+
   STATE.criterios.forEach(c => {
     const range = document.getElementById(`range-${c.ID}`);
     range.addEventListener('input', () => {
       document.getElementById(`val-${c.ID}`).textContent = `${range.value} / ${c.PesoMax}`;
+      actualizarTotalPanel();
     });
   });
 
-  document.getElementById('btn-cancelar').onclick = () => { wrap.innerHTML = ''; };
+  function volverALista() {
+    wrap.innerHTML = '';
+    document.getElementById('participantes-list').classList.remove('hidden');
+  }
+
+  document.getElementById('btn-volver').onclick = volverALista;
+  document.getElementById('btn-cancelar').onclick = volverALista;
   document.getElementById('btn-guardar').onclick = async () => {
     const status = document.getElementById('save-status');
     status.textContent = 'Guardando…';
@@ -538,9 +576,10 @@ function abrirPanelPuntuacion(participante) {
       if (!res.ok) { status.textContent = 'Error: ' + res.error; return; }
       STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
     }
-    status.textContent = '✓ Guardado';
+    const total = calcularTotalParticipante(participante.ID);
+    status.textContent = `✓ Guardado — Total: ${total.toFixed(1)} pts`;
     renderParticipantesJuez();
-    setTimeout(() => { wrap.innerHTML = ''; }, 700);
+    setTimeout(volverALista, 900);
   };
 }
 
