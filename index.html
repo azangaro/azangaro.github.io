@@ -219,6 +219,15 @@
   .lb-row .lb-cat{ font-size:12px; color:var(--text-dim); }
   .lb-row .lb-total{ font-family:'Space Mono',monospace; font-weight:700; font-size:17px; color:var(--accent); flex-shrink:0; }
   .lb-row.updated{ background:var(--live-soft); border-color:var(--live); }
+
+  /* ---------- Banner de avisos de datos ---------- */
+  .warning-banner{
+    background:#FFFBEB; border:1px solid #FDE68A; color:#92400E; border-radius:var(--radius);
+    padding:14px 16px; margin:16px 0; font-size:13px; line-height:1.5;
+  }
+  .warning-banner strong{ display:block; margin-bottom:4px; font-size:13px; }
+  .warning-banner ul{ margin:4px 0 0; padding-left:18px; }
+  .warning-banner li{ margin-bottom:3px; }
 </style>
 </head>
 <body>
@@ -259,6 +268,7 @@
     <a class="back-link" href="#">&larr; Inicio</a>
   </div>
   <div class="container">
+    <div id="jueces-avisos"></div>
     <div id="jueces-login" class="login-box">
       <h2>Acceso jurado</h2>
       <p class="lead">Selecciona tu nombre e ingresa tu PIN</p>
@@ -290,6 +300,7 @@
   <div class="container-wide">
     <h2 class="section-title">Panel del organizador</h2>
     <p class="section-sub">Se actualiza automáticamente cada 5 segundos</p>
+    <div id="org-avisos"></div>
     <div class="table-wrap">
       <table>
         <thead>
@@ -310,7 +321,10 @@
   <div class="publico-header">
     <h1>Marcador</h1>
   </div>
-  <div class="leaderboard" id="publico-leaderboard"></div>
+  <div class="leaderboard">
+    <div id="publico-avisos"></div>
+    <div id="publico-leaderboard"></div>
+  </div>
 </div>
 
 <script>
@@ -318,7 +332,7 @@
    CONFIGURACIÓN — pega aquí la URL de tu Apps Script Web App
    (ver instrucciones.md, paso "Publicar como aplicación web")
 ===================================================================== */
-const API_URL = 'https://script.google.com/macros/s/AKfycbyztUNHhA6EXkEz2Igck9NJx5tq5NL7o12DL3s_JoPtSoFD-D9TbKtZQsvUnKc8G4D2/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbxrlDZKyQrW5Nv17jiA5o0FSDdAgjvtztPVSumao5yPJFRI-DXNl-rLC4qGGE_NF4d6/exec';
 
 /* ------------------------- utilidades ------------------------- */
 async function apiGet(action, params) {
@@ -340,6 +354,17 @@ let STATE = {
   resultadosTimer: null
 };
 
+function renderAvisos(containerId, avisos) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!avisos || avisos.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="warning-banner">
+      <strong>⚠️ Revisa la Google Sheet — hay datos que están mezclando puntajes:</strong>
+      <ul>${avisos.map(a => `<li>${a}</li>`).join('')}</ul>
+    </div>`;
+}
+
 /* ------------------------- router ------------------------- */
 const VIEWS = ['landing', 'jueces', 'organizador', 'publico'];
 function router() {
@@ -360,6 +385,7 @@ async function loadInit() {
   STATE.jueces = data.jueces;
   STATE.participantes = data.participantes.sort((a, b) => (a.Orden || 0) - (b.Orden || 0));
   STATE.criterios = data.criterios;
+  renderAvisos('jueces-avisos', data.avisos);
   return data;
 }
 
@@ -523,6 +549,7 @@ async function loadOrganizador() {
   if (!STATE.criterios.length) await loadInit();
   const data = await apiGet('resultados');
   if (!data.ok) return;
+  renderAvisos('org-avisos', data.avisos);
 
   const thead = document.getElementById('org-thead-row');
   thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` +
@@ -547,6 +574,7 @@ let prevTotales = {};
 async function loadPublico() {
   const data = await apiGet('resultados');
   if (!data.ok) return;
+  renderAvisos('publico-avisos', data.avisos);
 
   const el = document.getElementById('publico-leaderboard');
   if (data.resultados.length === 0) {
