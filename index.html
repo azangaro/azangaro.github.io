@@ -161,7 +161,14 @@
   }
   .criterio-row{ margin-bottom:18px; }
   .criterio-row label{ display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px; margin-bottom:8px; color:var(--text-dim); font-weight:500; }
-  .criterio-row input[type=range]{ width:100%; accent-color:var(--accent); height:6px; }
+  .criterio-row .row-inputs{ display:flex; align-items:center; gap:12px; }
+  .criterio-row input[type=range]{ flex:1; accent-color:var(--accent); height:6px; }
+  .criterio-row input[type=number]{
+    width:72px; flex-shrink:0; text-align:center; padding:8px 6px; border-radius:var(--radius-sm);
+    border:1px solid var(--border); background:var(--surface-alt); color:var(--text);
+    font-family:'Space Mono',monospace; font-size:14px; font-weight:700;
+  }
+  .criterio-row input[type=number]:focus{ outline:none; border-color:var(--accent); }
   .criterio-row .val{ color:var(--accent); font-weight:700; font-family:'Space Mono',monospace; font-size:14px; }
   .panel-actions{ display:flex; gap:10px; margin-top:20px; }
   .panel-actions button{ flex:1; padding:13px; border-radius:var(--radius-sm); font-size:14px; font-weight:600; }
@@ -238,6 +245,24 @@
   .warning-banner strong{ display:block; margin-bottom:4px; font-size:13px; }
   .warning-banner ul{ margin:4px 0 0; padding-left:18px; }
   .warning-banner li{ margin-bottom:3px; }
+
+  /* ---------- Spinner / estado de carga ---------- */
+  .spinner{
+    width:20px; height:20px; border-radius:50%; flex-shrink:0;
+    border:2.5px solid var(--border); border-top-color:var(--accent);
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){ .spinner{ animation-duration:1.4s; } }
+  .loading-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+    padding:48px 20px; color:var(--text-dim); font-size:13px; font-weight:500;
+  }
+  .loading-state .spinner{ width:24px; height:24px; }
+  .btn-spinner{
+    width:15px; height:15px; border-radius:50%; display:inline-block; vertical-align:-3px; margin-right:7px;
+    border:2px solid rgba(255,255,255,0.4); border-top-color:#fff; animation:spin .7s linear infinite;
+  }
 </style>
 </head>
 <body>
@@ -282,12 +307,17 @@
     <div id="jueces-login" class="login-box">
       <h2>Acceso jurado</h2>
       <p class="lead">Selecciona tu nombre e ingresa tu PIN</p>
-      <label class="field-label">Jurado</label>
-      <select id="select-juez"></select>
-      <div class="pin-display" id="pin-display">••••</div>
-      <div class="pin-pad" id="pin-pad"></div>
+      <div id="login-loading" class="loading-state">
+        <span class="spinner"></span> Cargando datos…
+      </div>
       <div class="error-msg hidden" id="login-error"></div>
-      <button class="primary-btn" id="btn-login">Ingresar</button>
+      <div id="login-fields" class="hidden">
+        <label class="field-label">Jurado</label>
+        <select id="select-juez"></select>
+        <div class="pin-display" id="pin-display">••••</div>
+        <div class="pin-pad" id="pin-pad"></div>
+        <button class="primary-btn" id="btn-login">Ingresar</button>
+      </div>
     </div>
 
     <div id="jueces-panel" class="hidden">
@@ -420,6 +450,8 @@ async function initJueces() {
   document.getElementById('jueces-login').classList.remove('hidden');
   document.getElementById('jueces-panel').classList.add('hidden');
   document.getElementById('login-error').classList.add('hidden');
+  document.getElementById('login-loading').classList.remove('hidden');
+  document.getElementById('login-fields').classList.add('hidden');
   pinBuffer = '';
   updatePinDisplay();
   renderPinPad();
@@ -427,9 +459,13 @@ async function initJueces() {
   try {
     await loadInit();
   } catch (err) {
+    document.getElementById('login-loading').classList.add('hidden');
     showLoginError(err.message);
     return;
   }
+  document.getElementById('login-loading').classList.add('hidden');
+  document.getElementById('login-fields').classList.remove('hidden');
+
   const sel = document.getElementById('select-juez');
   sel.innerHTML = STATE.jueces.map(j => `<option value="${j.ID}">${j.Nombre}</option>`).join('');
 
@@ -449,10 +485,16 @@ function showLoginError(msg) {
 }
 
 document.getElementById('btn-login').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-login');
   const juezId = document.getElementById('select-juez').value;
   const pin = pinBuffer;
   document.getElementById('login-error').classList.add('hidden');
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.innerHTML = '<span class="btn-spinner"></span>Ingresando…';
   const res = await apiPost({ action: 'login', juezId, pin });
+  btn.disabled = false;
+  btn.textContent = originalText;
   if (!res.ok) { showLoginError(res.error); return; }
   STATE.juezActual = { id: juezId, nombre: res.nombre };
   STATE.pin = pin;
@@ -472,6 +514,7 @@ async function entrarPanelJuez() {
   document.getElementById('jueces-login').classList.add('hidden');
   document.getElementById('jueces-panel').classList.remove('hidden');
   document.getElementById('juez-nombre').textContent = STATE.juezActual.nombre;
+  document.getElementById('participantes-list').innerHTML = `<div class="loading-state"><span class="spinner"></span> Cargando danzas…</div>`;
   const mp = await apiGet('misPuntajes', { juezId: STATE.juezActual.id });
   STATE.misPuntajes = {};
   (mp.puntajes || []).forEach(p => {
@@ -509,7 +552,7 @@ function renderParticipantesJuez() {
     row.innerHTML = `
       <div>
         <div class="name">${p.Nombre}</div>
-        <div class="status">${scored ? `✓ Calificado — ${total.toFixed(1)} pts` : 'Pendiente'}</div>
+        <div class="status">${scored ? `✓ Calificado — ${total.toFixed(2)} pts` : 'Pendiente'}</div>
       </div>
       <button>${scored ? 'Editar' : 'Calificar'}</button>`;
     row.querySelector('button').onclick = () => abrirPanelPuntuacion(p);
@@ -531,8 +574,11 @@ function abrirPanelPuntuacion(participante) {
       <h3>${participante.Nombre}</h3>
       ${STATE.criterios.map(c => `
         <div class="criterio-row">
-          <label><span>${c.Nombre}</span><span class="val" id="val-${c.ID}">${valores[c.ID]} / ${c.PesoMax}</span></label>
-          <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}">
+          <label><span>${c.Nombre}</span><span class="val" id="val-${c.ID}">${Number(valores[c.ID]).toFixed(2)} / ${c.PesoMax}</span></label>
+          <div class="row-inputs">
+            <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}">
+            <input type="number" min="0" max="${c.PesoMax}" step="0.01" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}">
+          </div>
         </div>`).join('')}
       <div class="panel-total" id="panel-total"></div>
       <div class="panel-actions">
@@ -544,17 +590,25 @@ function abrirPanelPuntuacion(participante) {
 
   function actualizarTotalPanel() {
     let total = 0;
-    STATE.criterios.forEach(c => { total += Number(document.getElementById(`range-${c.ID}`).value); });
-    document.getElementById('panel-total').textContent = `Total: ${total.toFixed(1)} pts`;
+    STATE.criterios.forEach(c => { total += Number(document.getElementById(`num-${c.ID}`).value || 0); });
+    document.getElementById('panel-total').textContent = `Total: ${total.toFixed(2)} pts`;
   }
   actualizarTotalPanel();
 
   STATE.criterios.forEach(c => {
     const range = document.getElementById(`range-${c.ID}`);
-    range.addEventListener('input', () => {
-      document.getElementById(`val-${c.ID}`).textContent = `${range.value} / ${c.PesoMax}`;
+    const num = document.getElementById(`num-${c.ID}`);
+    const pesoMax = Number(c.PesoMax);
+    const sync = (value) => {
+      let v = Math.min(pesoMax, Math.max(0, Number(value) || 0));
+      range.value = v;
+      num.value = v.toFixed(2);
+      document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
       actualizarTotalPanel();
-    });
+    };
+    range.addEventListener('input', () => sync(range.value));
+    num.addEventListener('input', () => sync(num.value));
+    num.addEventListener('blur', () => sync(num.value));
   });
 
   function volverALista() {
@@ -568,7 +622,7 @@ function abrirPanelPuntuacion(participante) {
     const status = document.getElementById('save-status');
     status.textContent = 'Guardando…';
     for (const c of STATE.criterios) {
-      const puntaje = Number(document.getElementById(`range-${c.ID}`).value);
+      const puntaje = Number(document.getElementById(`num-${c.ID}`).value);
       const res = await apiPost({
         action: 'puntuar', juezId: STATE.juezActual.id, pin: STATE.pin,
         participanteId: participante.ID, criterioId: c.ID, puntaje
@@ -577,17 +631,22 @@ function abrirPanelPuntuacion(participante) {
       STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
     }
     const total = calcularTotalParticipante(participante.ID);
-    status.textContent = `✓ Guardado — Total: ${total.toFixed(1)} pts`;
+    status.textContent = `✓ Guardado — Total: ${total.toFixed(2)} pts`;
     renderParticipantesJuez();
     setTimeout(volverALista, 900);
   };
 }
 
 /* ======================= VISTA ORGANIZADOR ======================= */
+let organizadorCargado = false;
 async function loadOrganizador() {
+  if (!organizadorCargado) {
+    document.getElementById('org-tbody').innerHTML = `<tr><td colspan="99"><div class="loading-state"><span class="spinner"></span> Cargando resultados…</div></td></tr>`;
+  }
   if (!STATE.criterios.length) await loadInit();
   const data = await apiGet('resultados');
   if (!data.ok) return;
+  organizadorCargado = true;
   renderAvisos('org-avisos', data.avisos);
 
   const thead = document.getElementById('org-thead-row');
@@ -602,17 +661,22 @@ async function loadOrganizador() {
         <span class="name-line"><span class="rank-badge ${i < 3 ? 'top' : ''}">${i + 1}</span> ${r.nombre}</span>
       </td>
       <td data-label="Categoría">${r.categoria || '—'}</td>
-      ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${d.promedio.toFixed(1)}</td>`).join('')}
+      ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${d.promedio.toFixed(2)}</td>`).join('')}
       <td data-label="Jueces"><span class="progress-badge ${r.juecesCompletos >= data.totalJueces && data.totalJueces > 0 ? 'complete' : 'pending'}">${r.juecesCompletos}/${data.totalJueces}</span></td>
-      <td data-label="Total"><span class="total-cell">${r.total.toFixed(1)}</span></td>
+      <td data-label="Total"><span class="total-cell">${r.total.toFixed(2)}</span></td>
     </tr>`).join('') || `<tr><td colspan="99" class="empty-state">Aún no hay participantes o puntajes registrados</td></tr>`;
 }
 
 /* ======================= VISTA PÚBLICO ======================= */
 let prevTotales = {};
+let publicoCargado = false;
 async function loadPublico() {
+  if (!publicoCargado) {
+    document.getElementById('publico-leaderboard').innerHTML = `<div class="loading-state"><span class="spinner"></span> Cargando marcador…</div>`;
+  }
   const data = await apiGet('resultados');
   if (!data.ok) return;
+  publicoCargado = true;
   renderAvisos('publico-avisos', data.avisos);
 
   const el = document.getElementById('publico-leaderboard');
@@ -631,7 +695,7 @@ async function loadPublico() {
           <div class="lb-name">${r.nombre}</div>
           <div class="lb-cat">${r.categoria || ''}</div>
         </span>
-        <span class="lb-total">${r.total.toFixed(1)}</span>
+        <span class="lb-total">${r.total.toFixed(2)}</span>
       </div>`;
   }).join('');
 
