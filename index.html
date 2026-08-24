@@ -1,1 +1,578 @@
-hola
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concurso de Danza — Puntuación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAFA;
+    --surface:#FFFFFF;
+    --surface-alt:#F4F4F5;
+    --border:#E4E4E7;
+    --text:#18181B;
+    --text-dim:#71717A;
+    --accent:#4F46E5;
+    --accent-soft:#EEF2FF;
+    --live:#10B981;
+    --live-soft:#ECFDF5;
+    --danger:#DC2626;
+    --danger-soft:#FEF2F2;
+    --radius-sm:10px;
+    --radius:16px;
+    --radius-lg:22px;
+    --shadow:0 1px 2px rgba(24,24,27,0.04), 0 8px 24px -12px rgba(24,24,27,0.08);
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; min-height:100%; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    font-size:15px;
+    line-height:1.5;
+  }
+  h1,h2,h3,.display{ font-family:'Sora',sans-serif; font-weight:700; letter-spacing:-0.01em; margin:0; }
+  .mono{ font-family:'Space Mono',monospace; }
+  .hidden{ display:none !important; }
+  button{ font-family:'Inter',sans-serif; cursor:pointer; border:none; -webkit-tap-highlight-color:transparent; }
+  input, select{ font-family:'Inter',sans-serif; }
+  a{ color:inherit; }
+
+  .container{ max-width:640px; margin:0 auto; padding:0 18px 48px; }
+  .container-wide{ max-width:920px; margin:0 auto; padding:0 18px 48px; }
+
+  /* ---------- Top bar (shared) ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 18px; max-width:920px; margin:0 auto;
+  }
+  .back-link{
+    display:inline-flex; align-items:center; gap:6px; color:var(--text-dim);
+    text-decoration:none; font-size:14px; font-weight:600; padding:8px 4px;
+  }
+  .back-link:hover{ color:var(--text); }
+  .live-pill{
+    display:inline-flex; align-items:center; gap:6px; background:var(--live-soft);
+    color:var(--live); padding:6px 12px; border-radius:999px; font-size:12px; font-weight:700;
+    letter-spacing:0.03em;
+  }
+  .live-pill .dot{ width:6px; height:6px; border-radius:50%; background:var(--live); animation:pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ opacity:0.4; } 50%{ opacity:1; } }
+  @media (prefers-reduced-motion: reduce){ .live-pill .dot{ animation:none; } }
+
+  /* ---------- Landing ---------- */
+  #view-landing{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:32px 20px; text-align:center;
+  }
+  #view-landing .eyebrow{ color:var(--accent); letter-spacing:0.12em; font-size:12px; font-weight:700; margin-bottom:10px; text-transform:uppercase; }
+  #view-landing h1{ font-size:clamp(28px,7vw,42px); margin:0 0 6px; }
+  #view-landing p.sub{ color:var(--text-dim); margin:0 0 36px; font-size:14.5px; }
+  .role-grid{ display:grid; gap:12px; grid-template-columns:1fr; width:100%; max-width:380px; }
+  @media (min-width:640px){ .role-grid{ max-width:820px; grid-template-columns:repeat(3,1fr); } }
+  .role-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px; text-align:left; color:var(--text); text-decoration:none;
+    display:flex; align-items:center; gap:14px; transition:border-color .15s ease, transform .15s ease;
+  }
+  @media (min-width:640px){ .role-card{ flex-direction:column; align-items:flex-start; gap:12px; padding:24px 20px; } }
+  .role-card:hover, .role-card:focus-visible{ border-color:var(--accent); transform:translateY(-2px); outline:none; }
+  .role-card .icon{
+    width:40px; height:40px; border-radius:12px; background:var(--accent-soft); color:var(--accent);
+    display:flex; align-items:center; justify-content:center; font-size:19px; flex-shrink:0;
+  }
+  .role-card h3{ font-size:16px; margin:0 0 2px; }
+  .role-card p{ margin:0; font-size:12.5px; color:var(--text-dim); line-height:1.45; }
+
+  /* ---------- Jueces: login ---------- */
+  .login-box{
+    max-width:360px; margin:32px auto 0; background:var(--surface); border-radius:var(--radius-lg);
+    padding:26px 22px; border:1px solid var(--border); box-shadow:var(--shadow);
+  }
+  .login-box h2{ font-size:20px; margin:0 0 4px; text-align:center; }
+  .login-box .lead{ text-align:center; color:var(--text-dim); font-size:13px; margin:0 0 20px; }
+  .field-label{ font-size:12px; font-weight:600; color:var(--text-dim); margin-bottom:6px; display:block; }
+  select{
+    width:100%; padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:var(--surface-alt); color:var(--text); font-size:15px; margin-bottom:18px; appearance:none;
+  }
+  .pin-display{
+    width:100%; padding:14px; border-radius:var(--radius-sm); border:1px solid var(--border);
+    background:var(--surface-alt); text-align:center; font-size:24px; letter-spacing:0.5em; margin-bottom:14px;
+    font-family:'Space Mono',monospace; color:var(--text);
+  }
+  .pin-pad{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:18px; }
+  .pin-pad button{
+    background:var(--surface-alt); color:var(--text); border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:16px 0; font-size:17px; font-weight:600;
+  }
+  .pin-pad button:active{ background:var(--accent-soft); border-color:var(--accent); }
+  .pin-pad button.wide{ color:var(--text-dim); font-size:14px; font-weight:500; }
+  .primary-btn{
+    width:100%; background:var(--accent); color:#fff; font-weight:700;
+    padding:14px; border-radius:var(--radius-sm); font-size:15px;
+  }
+  .primary-btn:active{ opacity:0.85; }
+  .primary-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .error-msg{
+    color:var(--danger); background:var(--danger-soft); border-radius:var(--radius-sm);
+    font-size:13px; padding:10px 12px; margin:0 0 14px; text-align:center;
+  }
+
+  /* ---------- Jueces: panel ---------- */
+  .juez-header{ display:flex; align-items:center; justify-content:space-between; margin:22px 0 4px; }
+  .juez-header h2{ font-size:19px; }
+  .logout-btn{ background:none; color:var(--text-dim); font-size:12.5px; font-weight:600; text-decoration:underline; padding:6px; }
+
+  .categoria-label{ color:var(--accent); font-size:11.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; margin:22px 0 8px; }
+  .participante-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--surface); border-radius:var(--radius); padding:14px 16px; margin-bottom:8px;
+    border:1px solid var(--border);
+  }
+  .participante-row .name{ font-weight:600; font-size:14.5px; }
+  .participante-row .status{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+  .participante-row.done{ border-color:var(--live); background:var(--live-soft); }
+  .participante-row.done .status{ color:var(--live); font-weight:600; }
+  .participante-row button{
+    background:var(--surface-alt); color:var(--text); padding:9px 15px; border-radius:var(--radius-sm);
+    font-size:13px; font-weight:600; border:1px solid var(--border); flex-shrink:0;
+  }
+
+  .score-panel{
+    background:var(--surface); border-radius:var(--radius-lg); padding:22px; margin-top:16px;
+    border:1px solid var(--border); box-shadow:var(--shadow);
+  }
+  .score-panel h3{ font-size:18px; margin:0 0 18px; }
+  .criterio-row{ margin-bottom:18px; }
+  .criterio-row label{ display:flex; justify-content:space-between; align-items:baseline; font-size:13.5px; margin-bottom:8px; color:var(--text-dim); font-weight:500; }
+  .criterio-row input[type=range]{ width:100%; accent-color:var(--accent); height:6px; }
+  .criterio-row .val{ color:var(--accent); font-weight:700; font-family:'Space Mono',monospace; font-size:14px; }
+  .panel-actions{ display:flex; gap:10px; margin-top:20px; }
+  .panel-actions button{ flex:1; padding:13px; border-radius:var(--radius-sm); font-size:14px; font-weight:600; }
+  .cancel-btn{ background:var(--surface-alt); color:var(--text-dim); border:1px solid var(--border); }
+  .save-status{ font-size:12.5px; margin-top:10px; text-align:center; color:var(--text-dim); font-weight:500; }
+
+  /* ---------- Organizador ---------- */
+  h2.section-title{ font-size:19px; margin:20px 0 4px; }
+  .section-sub{ color:var(--text-dim); font-size:13px; margin:0 0 18px; }
+
+  .table-wrap{ border-radius:var(--radius); border:1px solid var(--border); overflow:hidden; background:var(--surface); }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{
+    text-align:left; padding:12px 14px; background:var(--surface-alt); color:var(--text-dim);
+    font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+  }
+  tbody td{ padding:12px 14px; border-top:1px solid var(--border); }
+  tbody tr:hover{ background:var(--surface-alt); }
+  .rank-badge{
+    display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
+    border-radius:50%; font-family:'Space Mono',monospace; font-size:11.5px; font-weight:700;
+    background:var(--surface-alt); color:var(--text-dim); border:1px solid var(--border);
+  }
+  .rank-badge.top{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .total-cell{ font-family:'Space Mono',monospace; font-weight:700; font-size:14.5px; }
+  .progress-badge{ font-size:11px; padding:3px 9px; border-radius:999px; font-family:'Space Mono',monospace; font-weight:700; }
+  .progress-badge.complete{ background:var(--live-soft); color:var(--live); }
+  .progress-badge.pending{ background:var(--accent-soft); color:var(--accent); }
+  .empty-state{ text-align:center; color:var(--text-dim); padding:40px 20px; font-size:14px; }
+
+  /* tabla -> tarjetas apiladas en celular */
+  @media (max-width:640px){
+    .table-wrap thead{ display:none; }
+    .table-wrap table, .table-wrap tbody, .table-wrap tr, .table-wrap td{ display:block; width:100%; }
+    .table-wrap tr{ padding:14px 16px; border-top:1px solid var(--border); }
+    .table-wrap tr:first-child{ border-top:none; }
+    .table-wrap td{ padding:4px 0; border:none; display:flex; justify-content:space-between; align-items:center; }
+    .table-wrap td::before{ content:attr(data-label); color:var(--text-dim); font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; }
+    .table-wrap td.row-head{ padding-bottom:8px; }
+    .table-wrap td.row-head::before{ content:''; }
+    .table-wrap td.row-head .name-line{ display:flex; align-items:center; gap:8px; font-weight:700; font-size:15px; color:var(--text); }
+  }
+
+  /* ---------- Público / marcador ---------- */
+  #view-publico{ min-height:100vh; }
+  .publico-header{ text-align:center; padding:26px 20px 6px; max-width:640px; margin:0 auto; }
+  .publico-header h1{ font-size:clamp(24px,6vw,34px); margin:10px 0 0; }
+
+  .leaderboard{ max-width:640px; margin:22px auto 40px; padding:0 18px; }
+  .lb-row{
+    display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--surface);
+    border-radius:var(--radius); margin-bottom:8px; border:1px solid var(--border);
+    transition:background .5s ease, border-color .3s ease;
+  }
+  .lb-row.rank-1{ border-color:var(--accent); background:var(--accent-soft); }
+  .lb-row .lb-rank{
+    width:30px; height:30px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono',monospace; font-weight:700; font-size:13px;
+    background:var(--surface-alt); color:var(--text-dim); border:1px solid var(--border);
+  }
+  .lb-row.rank-1 .lb-rank{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .lb-row.rank-2 .lb-rank, .lb-row.rank-3 .lb-rank{ color:var(--text); border-color:var(--text-dim); }
+  .lb-row .lb-info{ flex:1; min-width:0; }
+  .lb-row .lb-name{ font-weight:700; font-size:14.5px; }
+  .lb-row .lb-cat{ font-size:12px; color:var(--text-dim); }
+  .lb-row .lb-total{ font-family:'Space Mono',monospace; font-weight:700; font-size:17px; color:var(--accent); flex-shrink:0; }
+  .lb-row.updated{ background:var(--live-soft); border-color:var(--live); }
+</style>
+</head>
+<body>
+
+<!-- ======================= LANDING ======================= -->
+<div id="view-landing">
+  <div class="eyebrow">Sistema de puntuación</div>
+  <h1>Concurso de Danza</h1>
+  <p class="sub">Elige cómo vas a entrar</p>
+  <div class="role-grid">
+    <a class="role-card" href="#jueces" tabindex="0">
+      <span class="icon">🎙️</span>
+      <span>
+        <h3>Soy jurado</h3>
+        <p>Ingresa tu PIN y califica por criterio.</p>
+      </span>
+    </a>
+    <a class="role-card" href="#organizador" tabindex="0">
+      <span class="icon">🗂️</span>
+      <span>
+        <h3>Organizador</h3>
+        <p>Detalle y avance de cada jurado.</p>
+      </span>
+    </a>
+    <a class="role-card" href="#publico" tabindex="0">
+      <span class="icon">🏆</span>
+      <span>
+        <h3>Pantalla pública</h3>
+        <p>Marcador en vivo para proyectar.</p>
+      </span>
+    </a>
+  </div>
+</div>
+
+<!-- ======================= JUECES ======================= -->
+<div id="view-jueces" class="hidden">
+  <div class="topbar">
+    <a class="back-link" href="#">&larr; Inicio</a>
+  </div>
+  <div class="container">
+    <div id="jueces-login" class="login-box">
+      <h2>Acceso jurado</h2>
+      <p class="lead">Selecciona tu nombre e ingresa tu PIN</p>
+      <label class="field-label">Jurado</label>
+      <select id="select-juez"></select>
+      <div class="pin-display" id="pin-display">••••</div>
+      <div class="pin-pad" id="pin-pad"></div>
+      <div class="error-msg hidden" id="login-error"></div>
+      <button class="primary-btn" id="btn-login">Ingresar</button>
+    </div>
+
+    <div id="jueces-panel" class="hidden">
+      <div class="juez-header">
+        <h2 id="juez-nombre"></h2>
+        <button class="logout-btn" id="btn-logout">Salir</button>
+      </div>
+      <div id="participantes-list"></div>
+      <div id="score-panel-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= ORGANIZADOR ======================= -->
+<div id="view-organizador" class="hidden">
+  <div class="topbar">
+    <a class="back-link" href="#">&larr; Inicio</a>
+    <span class="live-pill"><span class="dot"></span> En vivo</span>
+  </div>
+  <div class="container-wide">
+    <h2 class="section-title">Panel del organizador</h2>
+    <p class="section-sub">Se actualiza automáticamente cada 5 segundos</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr id="org-thead-row"></tr>
+        </thead>
+        <tbody id="org-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= PÚBLICO ======================= -->
+<div id="view-publico" class="hidden">
+  <div class="topbar" style="justify-content:center;">
+    <a class="back-link" href="#" style="position:absolute; left:18px;">&larr;</a>
+    <span class="live-pill"><span class="dot"></span> En vivo</span>
+  </div>
+  <div class="publico-header">
+    <h1>Marcador</h1>
+  </div>
+  <div class="leaderboard" id="publico-leaderboard"></div>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN — pega aquí la URL de tu Apps Script Web App
+   (ver instrucciones.md, paso "Publicar como aplicación web")
+===================================================================== */
+const API_URL = 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT';
+
+/* ------------------------- utilidades ------------------------- */
+async function apiGet(action, params) {
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  for (const k in (params || {})) url.searchParams.set(k, params[k]);
+  const res = await fetch(url.toString());
+  return res.json();
+}
+async function apiPost(body) {
+  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(body) });
+  return res.json();
+}
+
+let STATE = {
+  jueces: [], participantes: [], criterios: [],
+  juezActual: null, pin: '',
+  misPuntajes: {},
+  resultadosTimer: null
+};
+
+/* ------------------------- router ------------------------- */
+const VIEWS = ['landing', 'jueces', 'organizador', 'publico'];
+function router() {
+  const hash = (location.hash || '#').slice(1);
+  const view = VIEWS.includes(hash) ? hash : 'landing';
+  VIEWS.forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== view));
+  clearInterval(STATE.resultadosTimer);
+  if (view === 'jueces') initJueces();
+  if (view === 'organizador') { loadOrganizador(); STATE.resultadosTimer = setInterval(loadOrganizador, 5000); }
+  if (view === 'publico') { loadPublico(); STATE.resultadosTimer = setInterval(loadPublico, 4000); }
+}
+window.addEventListener('hashchange', router);
+
+/* ------------------------- carga inicial compartida ------------------------- */
+async function loadInit() {
+  const data = await apiGet('init');
+  if (!data.ok) throw new Error(data.error || 'Error cargando datos');
+  STATE.jueces = data.jueces;
+  STATE.participantes = data.participantes.sort((a, b) => (a.Orden || 0) - (b.Orden || 0));
+  STATE.criterios = data.criterios;
+  return data;
+}
+
+/* ======================= VISTA JUECES ======================= */
+let pinBuffer = '';
+function renderPinPad() {
+  const pad = document.getElementById('pin-pad');
+  pad.innerHTML = '';
+  ['1','2','3','4','5','6','7','8','9','borrar','0','ok'].forEach(k => {
+    const btn = document.createElement('button');
+    if (k === 'borrar') { btn.textContent = '⌫'; btn.className = 'wide'; btn.onclick = () => { pinBuffer = pinBuffer.slice(0,-1); updatePinDisplay(); }; }
+    else if (k === 'ok') { btn.textContent = '✓'; btn.className = 'wide'; btn.onclick = () => document.getElementById('btn-login').click(); }
+    else { btn.textContent = k; btn.onclick = () => { if (pinBuffer.length < 6) pinBuffer += k; updatePinDisplay(); }; }
+    pad.appendChild(btn);
+  });
+}
+function updatePinDisplay() {
+  document.getElementById('pin-display').textContent = pinBuffer.length ? '•'.repeat(pinBuffer.length) : '••••';
+}
+
+async function initJueces() {
+  document.getElementById('jueces-login').classList.remove('hidden');
+  document.getElementById('jueces-panel').classList.add('hidden');
+  document.getElementById('login-error').classList.add('hidden');
+  pinBuffer = '';
+  updatePinDisplay();
+  renderPinPad();
+
+  try {
+    await loadInit();
+  } catch (err) {
+    showLoginError(err.message);
+    return;
+  }
+  const sel = document.getElementById('select-juez');
+  sel.innerHTML = STATE.jueces.map(j => `<option value="${j.ID}">${j.Nombre}</option>`).join('');
+
+  const saved = localStorage.getItem('danza_juez');
+  if (saved) {
+    const { juezId, pin, nombre } = JSON.parse(saved);
+    STATE.juezActual = { id: juezId, nombre };
+    STATE.pin = pin;
+    await entrarPanelJuez();
+  }
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+document.getElementById('btn-login').addEventListener('click', async () => {
+  const juezId = document.getElementById('select-juez').value;
+  const pin = pinBuffer;
+  document.getElementById('login-error').classList.add('hidden');
+  const res = await apiPost({ action: 'login', juezId, pin });
+  if (!res.ok) { showLoginError(res.error); return; }
+  STATE.juezActual = { id: juezId, nombre: res.nombre };
+  STATE.pin = pin;
+  localStorage.setItem('danza_juez', JSON.stringify({ juezId, pin, nombre: res.nombre }));
+  await entrarPanelJuez();
+});
+
+document.getElementById('btn-logout').addEventListener('click', () => {
+  localStorage.removeItem('danza_juez');
+  STATE.juezActual = null;
+  pinBuffer = '';
+  document.getElementById('jueces-login').classList.remove('hidden');
+  document.getElementById('jueces-panel').classList.add('hidden');
+});
+
+async function entrarPanelJuez() {
+  document.getElementById('jueces-login').classList.add('hidden');
+  document.getElementById('jueces-panel').classList.remove('hidden');
+  document.getElementById('juez-nombre').textContent = STATE.juezActual.nombre;
+  const mp = await apiGet('misPuntajes', { juezId: STATE.juezActual.id });
+  STATE.misPuntajes = {};
+  (mp.puntajes || []).forEach(p => {
+    STATE.misPuntajes[p.ParticipanteID + '|' + p.CriterioID] = p.Puntaje;
+  });
+  renderParticipantesJuez();
+}
+
+function renderParticipantesJuez() {
+  const wrap = document.getElementById('participantes-list');
+  wrap.innerHTML = '';
+  let lastCat = null;
+  STATE.participantes.forEach(p => {
+    if (p.Categoria !== lastCat) {
+      lastCat = p.Categoria;
+      const lbl = document.createElement('div');
+      lbl.className = 'categoria-label';
+      lbl.textContent = p.Categoria;
+      wrap.appendChild(lbl);
+    }
+    const scored = STATE.criterios.every(c => (p.ID + '|' + c.ID) in STATE.misPuntajes);
+    const row = document.createElement('div');
+    row.className = 'participante-row' + (scored ? ' done' : '');
+    row.innerHTML = `
+      <div>
+        <div class="name">${p.Nombre}</div>
+        <div class="status">${scored ? '✓ Calificado' : 'Pendiente'}</div>
+      </div>
+      <button>${scored ? 'Editar' : 'Calificar'}</button>`;
+    row.querySelector('button').onclick = () => abrirPanelPuntuacion(p);
+    wrap.appendChild(row);
+  });
+}
+
+function abrirPanelPuntuacion(participante) {
+  const wrap = document.getElementById('score-panel-wrap');
+  const valores = {};
+  STATE.criterios.forEach(c => {
+    valores[c.ID] = STATE.misPuntajes[participante.ID + '|' + c.ID] ?? Math.round(Number(c.PesoMax) / 2);
+  });
+
+  wrap.innerHTML = `
+    <div class="score-panel">
+      <h3>${participante.Nombre}</h3>
+      ${STATE.criterios.map(c => `
+        <div class="criterio-row">
+          <label><span>${c.Nombre}</span><span class="val" id="val-${c.ID}">${valores[c.ID]} / ${c.PesoMax}</span></label>
+          <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}">
+        </div>`).join('')}
+      <div class="panel-actions">
+        <button class="cancel-btn" id="btn-cancelar">Cancelar</button>
+        <button class="primary-btn" id="btn-guardar">Guardar puntajes</button>
+      </div>
+      <div class="save-status" id="save-status"></div>
+    </div>`;
+
+  STATE.criterios.forEach(c => {
+    const range = document.getElementById(`range-${c.ID}`);
+    range.addEventListener('input', () => {
+      document.getElementById(`val-${c.ID}`).textContent = `${range.value} / ${c.PesoMax}`;
+    });
+  });
+
+  document.getElementById('btn-cancelar').onclick = () => { wrap.innerHTML = ''; };
+  document.getElementById('btn-guardar').onclick = async () => {
+    const status = document.getElementById('save-status');
+    status.textContent = 'Guardando…';
+    for (const c of STATE.criterios) {
+      const puntaje = Number(document.getElementById(`range-${c.ID}`).value);
+      const res = await apiPost({
+        action: 'puntuar', juezId: STATE.juezActual.id, pin: STATE.pin,
+        participanteId: participante.ID, criterioId: c.ID, puntaje
+      });
+      if (!res.ok) { status.textContent = 'Error: ' + res.error; return; }
+      STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
+    }
+    status.textContent = '✓ Guardado';
+    renderParticipantesJuez();
+    setTimeout(() => { wrap.innerHTML = ''; }, 700);
+  };
+}
+
+/* ======================= VISTA ORGANIZADOR ======================= */
+async function loadOrganizador() {
+  if (!STATE.criterios.length) await loadInit();
+  const data = await apiGet('resultados');
+  if (!data.ok) return;
+
+  const thead = document.getElementById('org-thead-row');
+  thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` +
+    data.criterios.map(c => `<th>${c.Nombre}</th>`).join('') +
+    `<th>Jueces</th><th>Total</th>`;
+
+  const tbody = document.getElementById('org-tbody');
+  tbody.innerHTML = data.resultados.map((r, i) => `
+    <tr>
+      <td class="row-head" data-label="">
+        <span class="name-line"><span class="rank-badge ${i < 3 ? 'top' : ''}">${i + 1}</span> ${r.nombre}</span>
+      </td>
+      <td data-label="Categoría">${r.categoria || '—'}</td>
+      ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${d.promedio.toFixed(1)}</td>`).join('')}
+      <td data-label="Jueces"><span class="progress-badge ${r.juecesCompletos >= data.totalJueces && data.totalJueces > 0 ? 'complete' : 'pending'}">${r.juecesCompletos}/${data.totalJueces}</span></td>
+      <td data-label="Total"><span class="total-cell">${r.total.toFixed(1)}</span></td>
+    </tr>`).join('') || `<tr><td colspan="99" class="empty-state">Aún no hay participantes o puntajes registrados</td></tr>`;
+}
+
+/* ======================= VISTA PÚBLICO ======================= */
+let prevTotales = {};
+async function loadPublico() {
+  const data = await apiGet('resultados');
+  if (!data.ok) return;
+
+  const el = document.getElementById('publico-leaderboard');
+  if (data.resultados.length === 0) {
+    el.innerHTML = `<div class="empty-state">Esperando los primeros puntajes…</div>`;
+    return;
+  }
+
+  el.innerHTML = data.resultados.map((r, i) => {
+    const changed = prevTotales[r.id] !== undefined && prevTotales[r.id] !== r.total;
+    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
+    return `
+      <div class="lb-row ${rankClass} ${changed ? 'updated' : ''}">
+        <span class="lb-rank">${i + 1}</span>
+        <span class="lb-info">
+          <div class="lb-name">${r.nombre}</div>
+          <div class="lb-cat">${r.categoria || ''}</div>
+        </span>
+        <span class="lb-total">${r.total.toFixed(1)}</span>
+      </div>`;
+  }).join('');
+
+  data.resultados.forEach(r => { prevTotales[r.id] = r.total; });
+}
+
+/* ------------------------- arranque ------------------------- */
+router();
+</script>
+</body>
+</html>
