@@ -1,377 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Concurso de Danza — Puntuación</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0F172A;
-    --surface: #1E293B;
-    --surface-alt: #334155;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-focus: #6366F1;
-    --text: #F8FAFC;
-    --text-dim: #94A3B8;
-    --accent: #6366F1;
-    --accent-glow: rgba(99, 102, 241, 0.25);
-    --accent-soft: rgba(99, 102, 241, 0.12);
-    --live: #10B981;
-    --live-soft: rgba(16, 185, 129, 0.12);
-    --danger: #EF4444;
-    --danger-soft: rgba(239, 68, 68, 0.12);
-    --radius-sm: 12px;
-    --radius: 18px;
-    --radius-lg: 26px;
-    --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-    --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg); color: var(--text); }
-  body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    font-size: 15px;
-    line-height: 1.5;
-    overflow-x: hidden;
-  }
-
-  h1, h2, h3 { font-weight: 800; letter-spacing: -0.02em; margin: 0; }
-  .mono { font-family: 'Space Mono', monospace; }
-  .hidden { display: none !important; }
-  
-  /* Transiciones de Vista */
-  .view-container {
-    animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-  @keyframes fadeInScale {
-    from { opacity: 0; transform: scale(0.98) translateY(8px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-  }
-
-  button, input, select { font-family: inherit; outline: none; }
-  button { cursor: pointer; border: none; transition: var(--transition); user-select: none; }
-  button:active { transform: scale(0.96); }
-
-  .container { max-width: 500px; margin: 0 auto; padding: 0 16px 48px; }
-  .container-wide { max-width: 900px; margin: 0 auto; padding: 0 16px 48px; }
-
-  /* Topbar */
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 16px; max-width: 900px; margin: 0 auto;
-  }
-  .back-link {
-    display: inline-flex; align-items: center; gap: 8px; color: var(--text-dim);
-    text-decoration: none; font-size: 14px; font-weight: 700; padding: 10px 14px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 99px;
-    backdrop-filter: blur(10px);
-  }
-  .back-link:active { background: var(--surface-alt); }
-  .live-pill {
-    display: inline-flex; align-items: center; gap: 8px; background: var(--live-soft);
-    color: var(--live); padding: 8px 14px; border-radius: 99px; font-size: 12px; font-weight: 800;
-    border: 1px solid rgba(16, 185, 129, 0.2);
-  }
-  .live-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); box-shadow: 0 0 10px var(--live); animation: pulse 1.8s infinite; }
-  @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-
-  /* Landing Screen */
-  #view-landing {
-    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 24px 20px; text-align: center;
-  }
-  .eyebrow { 
-    background: var(--accent-soft); color: var(--accent); padding: 6px 14px; 
-    border-radius: 99px; font-size: 12px; font-weight: 800; margin-bottom: 16px; 
-    letter-spacing: 0.05em; text-transform: uppercase; border: 1px solid var(--accent-glow);
-  }
-  #view-landing h1 { font-size: clamp(32px, 8vw, 48px); margin-bottom: 8px; background: linear-gradient(180deg, #FFF 0%, #94A3B8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  #view-landing p.sub { color: var(--text-dim); margin-bottom: 32px; font-size: 15px; }
-  
-  .role-grid { display: grid; gap: 12px; width: 100%; max-width: 420px; }
-  .role-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 20px; text-align: left; color: var(--text); text-decoration: none;
-    display: flex; align-items: center; gap: 16px; transition: var(--transition);
-    box-shadow: var(--shadow);
-  }
-  .role-card:hover, .role-card:focus-visible { 
-    border-color: var(--accent); 
-    transform: translateY(-2px); 
-    box-shadow: 0 12px 30px var(--accent-glow);
-  }
-  .role-card .icon {
-    width: 48px; height: 48px; border-radius: 14px; background: var(--accent-soft);
-    display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
-  }
-  .role-card h3 { font-size: 17px; margin-bottom: 2px; }
-  .role-card p { margin: 0; font-size: 13px; color: var(--text-dim); }
-
-  /* Login Formulario Mobile */
-  .login-box {
-    background: var(--surface); border-radius: var(--radius-lg);
-    padding: 28px 20px; border: 1px solid var(--border); box-shadow: var(--shadow);
-  }
-  .login-box h2 { font-size: 22px; text-align: center; margin-bottom: 6px; }
-  .login-box .lead { text-align: center; color: var(--text-dim); font-size: 14px; margin-bottom: 24px; }
-  
-  select {
-    width: 100%; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);
-    background: var(--surface-alt); color: var(--text); font-size: 16px; font-weight: 600;
-    margin-bottom: 20px; transition: var(--transition); appearance: none;
-  }
-  select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-
-  .pin-display {
-    width: 100%; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);
-    background: var(--bg); text-align: center; font-size: 28px; letter-spacing: 0.4em;
-    margin-bottom: 16px; font-family: 'Space Mono', monospace; color: var(--accent);
-  }
-  .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-  .pin-pad button {
-    background: var(--surface-alt); color: var(--text); border: 1px solid var(--border);
-    border-radius: var(--radius-sm); height: 56px; font-size: 20px; font-weight: 700;
-  }
-  .pin-pad button.wide { color: var(--text-dim); font-size: 15px; }
-
-  .primary-btn {
-    width: 100%; height: 54px; background: var(--accent); color: #FFF; font-weight: 700;
-    border-radius: var(--radius-sm); font-size: 16px; box-shadow: 0 8px 20px var(--accent-glow);
-  }
-
-  /* Listado de Participantes */
-  .categoria-label { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin: 24px 0 10px 4px; }
-  .participante-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
-    border: 1px solid var(--border); transition: var(--transition);
-  }
-  .participante-row.done { border-color: var(--live); background: rgba(30, 41, 59, 0.6); }
-  .participante-row .name { font-weight: 700; font-size: 15px; }
-  .participante-row .status { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
-  .participante-row.done .status { color: var(--live); font-weight: 700; }
-  .participante-row button {
-    background: var(--surface-alt); color: var(--text); padding: 10px 18px; border-radius: var(--radius-sm);
-    font-size: 14px; font-weight: 700; border: 1px solid var(--border); flex-shrink: 0; min-height: 44px;
-  }
-
-  /* Panel de Puntuación Tactil */
-  .score-panel {
-    background: var(--surface); border-radius: var(--radius-lg); padding: 22px 18px;
-    border: 1px solid var(--border); box-shadow: var(--shadow);
-  }
-  .criterio-row { 
-    background: var(--surface-alt); padding: 16px; border-radius: var(--radius); margin-bottom: 12px; 
-    border: 1px solid var(--border);
-  }
-  .criterio-row label { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
-  .criterio-row .row-inputs { display: flex; align-items: center; gap: 14px; }
-  
-  /* Range Slider Custom */
-  input[type=range] {
-    -webkit-appearance: none; width: 100%; background: transparent;
-  }
-  input[type=range]:focus { outline: none; }
-  input[type=range]::-webkit-slider-runnable-track {
-    width: 100%; height: 8px; cursor: pointer; background: var(--bg); border-radius: 4px;
-  }
-  input[type=range]::-webkit-slider-thumb {
-    height: 28px; width: 28px; border-radius: 50%; background: var(--accent);
-    cursor: pointer; -webkit-appearance: none; margin-top: -10px;
-    box-shadow: 0 0 12px var(--accent-glow);
-  }
-
-  /* Input Numérico Optimizado para Teclados Móviles */
-  input[type=text].score-input {
-    width: 75px; height: 46px; text-align: center; border-radius: var(--radius-sm);
-    border: 1px solid var(--border); background: var(--bg); color: var(--accent);
-    font-family: 'Space Mono', monospace; font-size: 17px; font-weight: 700;
-  }
-  input[type=text].score-input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
-
-  .panel-total {
-    text-align: center; font-family: 'Space Mono', monospace; font-weight: 700; font-size: 20px;
-    color: var(--live); background: var(--live-soft); border-radius: var(--radius-sm);
-    padding: 14px; margin: 20px 0; border: 1px solid rgba(16, 185, 129, 0.2);
-  }
-
-  /* Tablas Adaptables en Organizador */
-  .table-wrap { border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; background: var(--surface); }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  thead th {
-    text-align: left; padding: 14px 16px; background: var(--surface-alt); color: var(--text-dim);
-    font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-  }
-  tbody td { padding: 14px 16px; border-top: 1px solid var(--border); }
-  
-  @media (max-width: 640px) {
-    .table-wrap thead { display: none; }
-    .table-wrap tr { display: block; padding: 16px; border-bottom: 1px solid var(--border); }
-    .table-wrap td { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border: none; }
-    .table-wrap td::before { content: attr(data-label); color: var(--text-dim); font-size: 12px; font-weight: 700; text-transform: uppercase; }
-  }
-
-  /* Vista Leaderboard/Público Desplegable */
-  .lb-card {
-    background: var(--surface); border-radius: var(--radius); margin-bottom: 10px;
-    border: 1px solid var(--border); transition: var(--transition); overflow: hidden;
-  }
-  .lb-card.rank-1 { border-color: var(--accent); background: linear-gradient(90deg, var(--accent-soft) 0%, var(--surface) 100%); }
-  .lb-header {
-    display: flex; align-items: center; gap: 14px; padding: 16px 20px; cursor: pointer;
-  }
-  .lb-rank {
-    width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-family: 'Space Mono', monospace; font-weight: 700; background: var(--surface-alt); flex-shrink: 0;
-  }
-  .lb-card.rank-1 .lb-rank { background: var(--accent); color: #FFF; box-shadow: 0 0 12px var(--accent-glow); }
-  .lb-total-btn {
-    display: inline-flex; align-items: center; gap: 6px; font-family: 'Space Mono', monospace;
-    font-weight: 700; font-size: 17px; color: var(--accent); background: var(--accent-soft);
-    padding: 6px 12px; border-radius: 10px; border: 1px solid var(--accent-glow);
-  }
-  .chevron { transition: transform 0.25s ease; font-size: 11px; display: inline-block; color: var(--text-dim); }
-  .lb-card.active .chevron { transform: rotate(180deg); }
-
-  /* Detalle Jurados */
-  .lb-detail {
-    display: none; padding: 16px 20px; border-top: 1px solid var(--border);
-    background: rgba(15, 23, 42, 0.4); font-size: 13px;
-  }
-  .lb-card.active .lb-detail { display: block; animation: fadeIn 0.2s ease; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-  .juez-detail-row {
-    margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed var(--border);
-  }
-  .juez-detail-row:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
-  .juez-name { font-weight: 700; color: var(--text); margin-bottom: 6px; display: flex; justify-content: space-between; }
-  .criterio-tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
-  .criterio-tag { background: var(--surface-alt); padding: 4px 8px; border-radius: 6px; color: var(--text-dim); font-size: 12px; }
-  .criterio-tag span { color: var(--text); font-weight: 700; font-family: 'Space Mono', monospace; }
-
-  /* Indicadores y Cargas */
-  .spinner {
-    width: 24px; height: 24px; border-radius: 50%;
-    border: 3px solid var(--border); border-top-color: var(--accent);
-    animation: spin 0.8s linear infinite; display: inline-block;
-  }
-  .spinner-sm {
-    width: 14px; height: 14px; border-width: 2px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 40px; color: var(--text-dim); }
-</style>
-</head>
-<body>
-
-<!-- LANDING -->
-<div id="view-landing" class="view-container">
-  <div class="eyebrow">Sistema de puntuación</div>
-  <h1>Concurso de Danza</h1>
-  <p class="sub">Selecciona el perfil de acceso</p>
-  <div class="role-grid">
-    <a class="role-card" href="#jueces">
-      <span class="icon">🎙️</span>
-      <span>
-        <h3>Jurado</h3>
-        <p>Calificación táctil por criterios.</p>
-      </span>
-    </a>
-    <a class="role-card" href="#organizador">
-      <span class="icon">🗂️</span>
-      <span>
-        <h3>Organizador</h3>
-        <p>Seguimiento de tiempos y promedios.</p>
-      </span>
-    </a>
-    <a class="role-card" href="#publico">
-      <span class="icon">🏆</span>
-      <span>
-        <h3>Pantalla Pública</h3>
-        <p>Tablero de resultados en vivo.</p>
-      </span>
-    </a>
-  </div>
-</div>
-
-<!-- JUECES -->
-<div id="view-jueces" class="hidden view-container">
-  <div class="topbar">
-    <a class="back-link" href="#">&larr; Inicio</a>
-  </div>
-  <div class="container">
-    <div id="jueces-avisos"></div>
-    <div id="jueces-login" class="login-box">
-      <h2>Acceso Jurado</h2>
-      <p class="lead">Selecciona tu usuario e ingresa el PIN</p>
-      <div id="login-loading" class="loading-state">
-        <div class="spinner"></div> Sincronizando...
-      </div>
-      <div class="error-msg hidden" id="login-error"></div>
-      <div id="login-fields" class="hidden">
-        <select id="select-juez"></select>
-        <div class="pin-display" id="pin-display">••••</div>
-        <div class="pin-pad" id="pin-pad"></div>
-        <button class="primary-btn" id="btn-login">Ingresar al Panel</button>
-      </div>
-    </div>
-
-    <div id="jueces-panel" class="hidden">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-        <h2 id="juez-nombre"></h2>
-        <button class="back-link" id="btn-logout" style="padding: 6px 12px;">Salir</button>
-      </div>
-      <div id="participantes-list"></div>
-      <div id="score-panel-wrap"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ORGANIZADOR -->
-<div id="view-organizador" class="hidden view-container">
-  <div class="topbar">
-    <a class="back-link" href="#">&larr; Inicio</a>
-    <span class="live-pill"><span class="dot"></span> EN VIVO</span>
-  </div>
-  <div class="container-wide">
-    <h2>Panel del Organizador</h2>
-    <p style="color: var(--text-dim); margin-bottom: 20px; font-size:14px;">Actualización automática cada 5s</p>
-    <div id="org-avisos"></div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr id="org-thead-row"></tr>
-        </thead>
-        <tbody id="org-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- PÚBLICO -->
-<div id="view-publico" class="hidden view-container">
-  <div class="topbar" style="justify-content:center;">
-    <a class="back-link" href="#" style="position:absolute; left:16px;">&larr;</a>
-    <span class="live-pill"><span class="dot"></span> EN VIVO</span>
-  </div>
-  <div class="container">
-    <h1 style="text-align:center; margin: 20px 0;">Tabla de Posiciones</h1>
-    <p style="text-align:center; color: var(--text-dim); font-size:13px; margin-bottom:20px;">Toca un puntaje para ver el detalle de los jurados</p>
-    <div id="publico-avisos"></div>
-    <div id="publico-leaderboard">
-      <div class="loading-state">
-        <div class="spinner"></div> Carga de posiciones...
-      </div>
-    </div>
-  </div>
-</div>
-
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbxBuT6a0tUL7vfkdPTJjBGkN5jiLuebjBZP1IroWkdoRPYvKPSr-pnATOaqU_ZBG8jT/exec';
 
@@ -426,7 +52,7 @@ async function loadInit() {
   return data;
 }
 
-/* PIN Keyboard */
+/* Teclado PIN */
 let pinBuffer = '';
 function renderPinPad() {
   const pad = document.getElementById('pin-pad');
@@ -589,7 +215,7 @@ function abrirPanelPuntuacion(participante) {
       <h3 style="margin-bottom: 20px;">${pNombre}</h3>
       ${STATE.criterios.map(c => {
         const cId = c.ID || c.id;
-        const cNombre = c.Nombre || c.nombre || c.criterioNombre || 'Criterio';
+        const cNombre = c.Nombre || c.nombre || c.criterioNombre || c.criterio || 'Criterio';
         const pesoMax = Number(c.PesoMax || c.pesoMax || 100);
         return `
         <div class="criterio-row">
@@ -698,7 +324,7 @@ async function loadOrganizador() {
   const listCriterios = data.criterios || STATE.criterios;
   const thead = document.getElementById('org-thead-row');
   thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` + 
-    listCriterios.map(c => `<th>${c.Nombre || c.nombre || c.criterioNombre || 'Criterio'}</th>`).join('') + 
+    listCriterios.map(c => `<th>${c.Nombre || c.nombre || c.criterioNombre || c.criterio || 'Criterio'}</th>`).join('') + 
     `<th>Total</th>`;
 
   const tbody = document.getElementById('org-tbody');
@@ -708,7 +334,7 @@ async function loadOrganizador() {
     const pTotal = typeof r.total === 'number' ? r.total.toFixed(2) : (r.total || '0.00');
 
     const celdasDetalle = (r.detalle || []).map(d => {
-      const cNom = d.criterioNombre || d.Nombre || d.nombre || d.criterio || 'Criterio';
+      const cNom = d.criterioNombre || d.criterio || d.Criterio || d.Nombre || d.nombre || 'Criterio';
       const prom = typeof d.promedio === 'number' ? d.promedio.toFixed(2) : (d.promedio || '0.00');
       return `<td data-label="${cNom}">${prom}</td>`;
     }).join('');
@@ -724,7 +350,7 @@ async function loadOrganizador() {
   }).join('');
 }
 
-/* Público: Leaderboard e Integración de Detalle */
+/* Público */
 async function loadPublico(isFirstLoad = false) {
   const container = document.getElementById('publico-leaderboard');
   
@@ -767,6 +393,7 @@ async function loadPublico(isFirstLoad = false) {
   openCards.forEach(id => fetchDetalleParticipante(id));
 }
 
+// CORRECCIÓN PRINCIPAL: Mapeo exacto del nombre del criterio utilizando STATE.criterios como respaldo.
 function buildDetailHtml(votos) {
   if (!votos || !votos.length) return `<div style="color:var(--text-dim); text-align:center; padding:8px;">Sin notas registradas por jurados aún</div>`;
   
@@ -780,7 +407,19 @@ function buildDetailHtml(votos) {
   return Object.keys(juradosMap).map(juez => {
     const totalJuez = juradosMap[juez].reduce((a, b) => a + Number(b.puntaje ?? b.Puntaje ?? 0), 0);
     const tagsHtml = juradosMap[juez].map(v => {
-      const cNom = v.criterioNombre || v.Nombre || v.nombre || v.criterio || v.Criterio || 'Criterio';
+      const cId = v.criterioId || v.CriterioID || v.criterioID;
+      
+      // Buscar el nombre real del criterio en el array STATE.criterios
+      let cNom = v.criterioNombre || v.criterio || v.Criterio || v.Nombre || v.nombre;
+      
+      if (!cNom || cNom === 'Criterio') {
+        const critObj = STATE.criterios.find(c => String(c.ID || c.id) === String(cId));
+        if (critObj) {
+          cNom = critObj.Nombre || critObj.nombre || critObj.criterioNombre;
+        }
+      }
+      
+      cNom = cNom || 'Criterio';
       const pVal = Number(v.puntaje ?? v.Puntaje ?? 0).toFixed(2);
       return `<span class="criterio-tag">${cNom}: <span>${pVal}</span></span>`;
     }).join('');
@@ -823,5 +462,3 @@ async function fetchDetalleParticipante(participanteId) {
 
 router();
 </script>
-</body>
-</html>
