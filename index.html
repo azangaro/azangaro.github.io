@@ -7,6 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+
+<!-- Librerías para Exportación (Excel y PDF) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
 <style>
   :root {
     --bg: #0F172A;
@@ -44,7 +50,6 @@
   .mono { font-family: 'Space Mono', monospace; }
   .hidden { display: none !important; }
   
-  /* Transiciones de Vista */
   .view-container {
     animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
@@ -66,12 +71,11 @@
   button:active { transform: scale(0.96); }
 
   .container { max-width: 500px; margin: 0 auto; padding: 0 16px 48px; }
-  .container-wide { max-width: 1100px; margin: 0 auto; padding: 0 16px 48px; }
+  .container-wide { max-width: 1000px; margin: 0 auto; padding: 0 16px 48px; }
 
-  /* Topbar moderna */
   .topbar {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 16px; max-width: 1100px; margin: 0 auto;
+    padding: 16px; max-width: 1000px; margin: 0 auto;
   }
   .back-link {
     display: inline-flex; align-items: center; gap: 8px; color: var(--text-dim);
@@ -120,7 +124,7 @@
   .role-card h3 { font-size: 17px; margin-bottom: 2px; }
   .role-card p { margin: 0; font-size: 13px; color: var(--text-dim); }
 
-  /* Login Formulario Mobile */
+  /* Login Formulario */
   .login-box {
     background: var(--surface); border-radius: var(--radius-lg);
     padding: 28px 20px; border: 1px solid var(--border); box-shadow: var(--shadow);
@@ -151,12 +155,13 @@
     width: 100%; height: 54px; background: var(--accent); color: #FFF; font-weight: 700;
     border-radius: var(--radius-sm); font-size: 16px; box-shadow: 0 8px 20px var(--accent-glow);
   }
-  .secondary-btn {
-    padding: 10px 18px; background: var(--surface-alt); color: var(--text); font-weight: 700;
-    border-radius: var(--radius-sm); font-size: 14px; border: 1px solid var(--border);
-    display: inline-flex; align-items: center; gap: 8px;
+  
+  .btn-export {
+    background: var(--surface-alt); color: var(--text); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 6px;
   }
-  .secondary-btn:hover { border-color: var(--accent); }
+  .btn-export:hover { border-color: var(--accent); color: #FFF; }
 
   /* Listado de Participantes */
   .categoria-label { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin: 24px 0 10px 4px; }
@@ -186,7 +191,6 @@
   .criterio-row label { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
   .criterio-row .row-inputs { display: flex; align-items: center; gap: 14px; }
   
-  /* Custom Range Slider */
   input[type=range] {
     -webkit-appearance: none; width: 100%; background: transparent;
   }
@@ -201,7 +205,7 @@
   }
 
   input[type=number] {
-    width: 80px; height: 44px; text-align: center; border-radius: var(--radius-sm);
+    width: 75px; height: 44px; text-align: center; border-radius: var(--radius-sm);
     border: 1px solid var(--border); background: var(--bg); color: var(--accent);
     font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700;
   }
@@ -213,17 +217,23 @@
   }
 
   /* Tablas Adaptables en Organizador */
-  .table-wrap { border-radius: var(--radius); border: 1px solid var(--border); overflow-x: auto; background: var(--surface); }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: center; }
+  .table-wrap { border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
   thead th {
-    padding: 12px 10px; background: var(--surface-alt); color: var(--text-dim);
-    font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-    border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+    text-align: left; padding: 14px 16px; background: var(--surface-alt); color: var(--text-dim);
+    font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
   }
-  thead tr:first-child th { border-bottom: 1px solid rgba(255,255,255,0.05); }
-  tbody td { padding: 12px 10px; border-top: 1px solid var(--border); border-right: 1px solid var(--border); }
-  tbody tr:hover { background: rgba(255,255,255,0.02); }
-  .juez-col { font-size: 12px; color: var(--text-dim); background: rgba(0,0,0,0.15); }
+  tbody td { padding: 14px 16px; border-top: 1px solid var(--border); }
+  
+  .juez-detail-row { background: rgba(15, 23, 42, 0.4); }
+  .juez-badge { display: inline-block; padding: 3px 8px; background: var(--surface-alt); border-radius: 6px; font-size: 12px; font-weight: 600; margin-right: 6px; margin-bottom: 4px; }
+
+  @media (max-width: 640px) {
+    .table-wrap thead { display: none; }
+    .table-wrap tr { display: block; padding: 16px; border-bottom: 1px solid var(--border); }
+    .table-wrap td { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border: none; }
+    .table-wrap td::before { content: attr(data-label); color: var(--text-dim); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+  }
 
   /* Vista Leaderboard/Público */
   .lb-row {
@@ -239,7 +249,6 @@
   .lb-row.rank-1 .lb-rank { background: var(--accent); color: #FFF; box-shadow: 0 0 12px var(--accent-glow); }
   .lb-total { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 18px; color: var(--accent); }
 
-  /* Indicador de carga */
   .spinner {
     width: 24px; height: 24px; border-radius: 50%;
     border: 3px solid var(--border); border-top-color: var(--accent);
@@ -247,23 +256,11 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px; color: var(--text-dim); }
-
-  /* Estilos específicos para impresión / PDF */
-  @media print {
-    body { background: #fff !important; color: #000 !important; }
-    .topbar, .back-link, .live-pill, button, .no-print { display: none !important; }
-    .container-wide { max-width: 100% !important; padding: 0 !important; }
-    .table-wrap { border: 1px solid #ccc !important; overflow: visible !important; }
-    table { font-size: 10pt !important; color: #000 !important; }
-    thead th { background: #f0f0f0 !important; color: #000 !important; border: 1px solid #ccc !important; }
-    tbody td { border: 1px solid #ccc !important; color: #000 !important; }
-    h2, p { color: #000 !important; }
-  }
 </style>
 </head>
 <body>
 
-<!-- ======================= LANDING ======================= -->
+<!-- LANDING -->
 <div id="view-landing" class="view-container">
   <div class="eyebrow">Sistema de puntuación</div>
   <h1>Concurso de Danza</h1>
@@ -293,7 +290,7 @@
   </div>
 </div>
 
-<!-- ======================= JUECES ======================= -->
+<!-- JUECES -->
 <div id="view-jueces" class="hidden view-container">
   <div class="topbar">
     <a class="back-link" href="#">&larr; Inicio</a>
@@ -326,35 +323,36 @@
   </div>
 </div>
 
-<!-- ======================= ORGANIZADOR ======================= -->
+<!-- ORGANIZADOR -->
 <div id="view-organizador" class="hidden view-container">
   <div class="topbar">
     <a class="back-link" href="#">&larr; Inicio</a>
     <span class="live-pill"><span class="dot"></span> EN VIVO</span>
   </div>
   <div class="container-wide">
-    <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 20px;">
       <div>
         <h2>Panel del Organizador</h2>
-        <p style="color: var(--text-dim); margin: 4px 0 0 0; font-size:14px;">Actualización automática cada 5s</p>
+        <p style="color: var(--text-dim); margin:0; font-size:14px;">Actualización automática cada 5s</p>
       </div>
-      <div class="no-print" style="display:flex; gap:10px;">
-        <button class="secondary-btn" id="btn-export-excel">📊 Exportar Excel</button>
-        <button class="secondary-btn" id="btn-export-pdf">📄 Exportar PDF</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn-export" onclick="exportarExcel()">📊 Excel</button>
+        <button class="btn-export" onclick="exportarPDF()">📄 PDF</button>
       </div>
     </div>
-    
     <div id="org-avisos"></div>
     <div class="table-wrap">
-      <table id="org-table">
-        <thead id="org-thead"></thead>
+      <table>
+        <thead>
+          <tr id="org-thead-row"></tr>
+        </thead>
         <tbody id="org-tbody"></tbody>
       </table>
     </div>
   </div>
 </div>
 
-<!-- ======================= PÚBLICO ======================= -->
+<!-- PÚBLICO -->
 <div id="view-publico" class="hidden view-container">
   <div class="topbar" style="justify-content:center;">
     <a class="back-link" href="#" style="position:absolute; left:16px;">&larr;</a>
@@ -387,9 +385,8 @@ async function apiPost(body) {
   return res.json();
 }
 
-let STATE = { jueces: [], participantes: [], criterios: [], juezActual: null, pin: '', misPuntajes: {}, resultadosTimer: null };
+let STATE = { jueces: [], participantes: [], criterios: [], juezActual: null, pin: '', misPuntajes: {}, resultadosTimer: null, ultimosResultados: null };
 
-/* Router con Animación de Entrada */
 const VIEWS = ['landing', 'jueces', 'organizador', 'publico'];
 function router() {
   const hash = (location.hash || '#').slice(1);
@@ -399,7 +396,7 @@ function router() {
     if(v === view) {
       el.classList.remove('hidden');
       el.style.animation = 'none';
-      el.offsetHeight; /* Trigger Reflow */
+      el.offsetHeight;
       el.style.animation = null;
     } else {
       el.classList.add('hidden');
@@ -422,7 +419,6 @@ async function loadInit() {
   return data;
 }
 
-/* Teclado Táctil PIN */
 let pinBuffer = '';
 function renderPinPad() {
   const pad = document.getElementById('pin-pad');
@@ -493,7 +489,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
   } catch(e) {
     btn.disabled = false;
     btn.textContent = 'Ingresar al Panel';
-    showLoginError("Error de conexión al autenticar.");
+    showLoginError("Error de comunicación al autenticar.");
   }
 });
 
@@ -555,7 +551,6 @@ function renderParticipantesJuez() {
   });
 }
 
-/* PANEL DE PUNTUACIÓN OPTIMIZADO PARA MÓVILES (MEJORA 1) */
 function abrirPanelPuntuacion(participante) {
   document.getElementById('participantes-list').classList.add('hidden');
   const wrap = document.getElementById('score-panel-wrap');
@@ -565,6 +560,7 @@ function abrirPanelPuntuacion(participante) {
     valores[c.ID] = STATE.misPuntajes[participante.ID + '|' + c.ID] ?? Math.round(Number(c.PesoMax) / 2);
   });
 
+  /* Corrección Móvil: inputmode decimal + pattern para teclado numérico cómodo */
   wrap.innerHTML = `
     <div class="score-panel">
       <button class="back-link" id="btn-volver" style="margin-bottom:16px;">&larr; Volver</button>
@@ -574,7 +570,7 @@ function abrirPanelPuntuacion(participante) {
           <label><span>${c.Nombre}</span><span id="val-${c.ID}" style="color:var(--accent); font-family:'Space Mono';">${Number(valores[c.ID]).toFixed(2)} / ${c.PesoMax}</span></label>
           <div class="row-inputs">
             <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}">
-            <input type="number" inputmode="decimal" pattern="[0-9]*" novalidate autocomplete="off" min="0" max="${c.PesoMax}" step="0.01" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}">
+            <input type="number" inputmode="decimal" pattern="[0-9]*" min="0" max="${c.PesoMax}" step="0.01" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}">
           </div>
         </div>`).join('')}
       <div class="panel-total" id="panel-total"></div>
@@ -594,37 +590,29 @@ function abrirPanelPuntuacion(participante) {
     const num = document.getElementById(`num-${c.ID}`);
     const pesoMax = Number(c.PesoMax);
     
-    // Sincronización cuando se usa el Deslizador (Range)
+    // Al hacer clic/foco en móviles, seleccionar todo el texto para reescribir fácilmente
+    num.addEventListener('focus', () => num.select());
+
     range.addEventListener('input', () => {
-      let v = Number(range.value);
+      let v = Math.min(pesoMax, Math.max(0, Number(range.value) || 0));
       num.value = v.toFixed(2);
       document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
       actualizarTotalPanel();
     });
 
-    // Escritura suave en el input numérico (No salta el cursor al escribir)
+    // Mantenemos la escritura fluida sin formatear agresivamente mientras se edita
     num.addEventListener('input', () => {
-      let val = parseFloat(num.value);
-      if (!isNaN(val)) {
-        range.value = Math.min(pesoMax, Math.max(0, val));
-        document.getElementById(`val-${c.ID}`).textContent = `${Math.min(pesoMax, Math.max(0, val)).toFixed(2)} / ${c.PesoMax}`;
-      }
+      let v = Number(num.value) || 0;
+      if (v > pesoMax) v = pesoMax;
+      range.value = v;
+      document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
       actualizarTotalPanel();
     });
 
-    // Formateo y validación al finalizar la edición (Blur/Change)
-    const validateAndFormat = () => {
-      let val = parseFloat(num.value);
-      if (isNaN(val)) val = 0;
-      val = Math.min(pesoMax, Math.max(0, val));
-      num.value = val.toFixed(2);
-      range.value = val;
-      document.getElementById(`val-${c.ID}`).textContent = `${val.toFixed(2)} / ${c.PesoMax}`;
-      actualizarTotalPanel();
-    };
-
-    num.addEventListener('change', validateAndFormat);
-    num.addEventListener('blur', validateAndFormat);
+    num.addEventListener('blur', () => {
+      let v = Math.min(pesoMax, Math.max(0, Number(num.value) || 0));
+      num.value = v.toFixed(2);
+    });
   });
 
   document.getElementById('btn-volver').onclick = () => {
@@ -656,85 +644,113 @@ function abrirPanelPuntuacion(participante) {
   };
 }
 
-/* CARGA DEL ORGANIZADOR CON DETALLE POR JUEZ (MEJORA 2) */
+/* Carga del Organizador con Detalle por Juez */
+let ordenDetallesAbiertos = {};
+
 async function loadOrganizador() {
-  if (!STATE.criterios.length || !STATE.jueces.length) await loadInit();
+  if (!STATE.criterios.length) await loadInit();
   const data = await apiGet('resultados');
   if (!data.ok) return;
 
-  const thead = document.getElementById('org-thead');
-  const numJueces = STATE.jueces.length;
+  STATE.ultimosResultados = data;
 
-  // Fila 1 de Encabezados (Super-Headers)
-  let tr1 = `<tr>
-    <th rowspan="2" style="width:40px;">#</th>
-    <th rowspan="2">Participante</th>
-    <th rowspan="2">Categoría</th>`;
-  
-  data.criterios.forEach(c => {
-    tr1 += `<th colspan="${numJueces + 1}">${c.Nombre}</th>`;
-  });
-  tr1 += `<th rowspan="2" style="color:var(--accent);">TOTAL</th></tr>`;
+  const thead = document.getElementById('org-thead-row');
+  thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` + data.criterios.map(c => `<th>${c.Nombre}</th>`).join('') + `<th>Total</th><th>Detalle</th>`;
 
-  // Fila 2 de Encabezados (Detalle por Juez)
-  let tr2 = `<tr>`;
-  data.criterios.forEach(c => {
-    STATE.jueces.forEach(j => {
-      tr2 += `<th class="juez-col" title="${j.Nombre}">${j.Nombre.split(' ')[0]}</th>`;
-    });
-    tr2 += `<th style="background:var(--surface);">Prom.</th>`;
-  });
-  tr2 += `</tr>`;
-
-  thead.innerHTML = tr1 + tr2;
-
-  // Filas de Datos de Resultados
   const tbody = document.getElementById('org-tbody');
-  tbody.innerHTML = data.resultados.map((r, i) => {
-    let row = `<tr>
-      <td>${i + 1}</td>
-      <td style="text-align:left;"><strong>${r.nombre}</strong></td>
-      <td>${r.categoria || '—'}</td>`;
-      
-    r.detalle.forEach(d => {
-      // Mostrar nota individual dada por cada juez
-      STATE.jueces.forEach(j => {
-        let notaJuez = '—';
-        if (d.jueces && d.jueces[j.ID] !== undefined) {
-          notaJuez = Number(d.jueces[j.ID]).toFixed(2);
-        }
-        row += `<td class="juez-col">${notaJuez}</td>`;
-      });
-      // Promedio del criterio
-      row += `<td style="font-weight:700;">${d.promedio.toFixed(2)}</td>`;
-    });
+  let html = '';
 
-    row += `<td><strong style="color:var(--accent); font-size:15px;">${r.total.toFixed(2)}</strong></td></tr>`;
-    return row;
-  }).join('');
+  data.resultados.forEach((r, i) => {
+    const isOpen = ordenDetallesAbiertos[r.id];
+    html += `
+      <tr>
+        <td data-label="#">${i + 1}</td>
+        <td data-label="Participante"><strong>${r.nombre}</strong></td>
+        <td data-label="Categoría">${r.categoria || '—'}</td>
+        ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${d.promedio.toFixed(2)}</td>`).join('')}
+        <td data-label="Total"><strong style="color:var(--accent);">${r.total.toFixed(2)}</strong></td>
+        <td data-label="Detalle">
+          <button class="btn-export" style="padding:4px 8px; font-size:11px;" onclick="toggleDetalle('${r.id}')">
+            ${isOpen ? 'Ocultar ▲' : 'Ver Jueces ▼'}
+          </button>
+        </td>
+      </tr>`;
+
+    if (isOpen) {
+      html += `
+        <tr class="juez-detail-row">
+          <td colspan="${5 + data.criterios.length}" style="padding:12px 16px;">
+            <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px; font-weight:700;">DESGLOSE POR JUEZ:</div>
+            ${r.votosJueces && r.votosJueces.length ? r.votosJueces.map(j => `
+              <div style="margin-bottom:4px;">
+                <span class="juez-badge">${j.juezNombre}</span>
+                <span style="font-size:12px; color:var(--text-dim);">
+                  ${j.notas.map(n => `${n.criterio}: <strong style="color:var(--text);">${n.puntaje}</strong>`).join(' | ')}
+                </span>
+              </div>
+            `).join('') : '<span style="font-size:12px; color:var(--text-dim);">Sin votos desglosados disponibles</span>'}
+          </td>
+        </tr>`;
+    }
+  });
+
+  tbody.innerHTML = html;
 }
 
-/* EXPORTACIÓN A EXCEL Y PDF (MEJORA 2) */
-document.getElementById('btn-export-excel').addEventListener('click', () => {
-  const table = document.getElementById('org-table');
-  const html = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-    <head><meta charset="utf-8"/><style>table, td, th { border: 1px solid #cccccc; border-collapse: collapse; text-align: center; font-family: Arial; }</style></head>
-    <body>${table.outerHTML}</body>
-    </html>`;
-  
-  const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Resultados_Concurso_Danza_${new Date().toISOString().slice(0,10)}.xls`;
-  a.click();
-  URL.revokeObjectURL(url);
-});
+function toggleDetalle(id) {
+  ordenDetallesAbiertos[id] = !ordenDetallesAbiertos[id];
+  loadOrganizador();
+}
 
-document.getElementById('btn-export-pdf').addEventListener('click', () => {
-  window.print();
-});
+/* Exportaciones Excel / PDF */
+function exportarExcel() {
+  if (!STATE.ultimosResultados) return;
+  const data = STATE.ultimosResultados;
+  
+  const rows = [];
+  data.resultados.forEach((r, i) => {
+    const row = {
+      'Puesto': i + 1,
+      'Participante': r.nombre,
+      'Categoría': r.categoria || '—'
+    };
+    r.detalle.forEach(d => { row[d.criterioNombre] = d.promedio; });
+    row['Total'] = r.total;
+    rows.push(row);
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Resultados");
+  XLSX.writeFile(wb, "Resultados_Concurso_Danza.xlsx");
+}
+
+function exportarPDF() {
+  if (!STATE.ultimosResultados) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.text("Resultados del Concurso de Danza", 14, 15);
+
+  const head = [['#', 'Participante', 'Categoría', ...STATE.ultimosResultados.criterios.map(c => c.Nombre), 'Total']];
+  const body = STATE.ultimosResultados.resultados.map((r, i) => [
+    i + 1,
+    r.nombre,
+    r.categoria || '—',
+    ...r.detalle.map(d => d.promedio.toFixed(2)),
+    r.total.toFixed(2)
+  ]);
+
+  doc.autoTable({
+    head: head,
+    body: body,
+    startY: 20,
+    theme: 'grid',
+    styles: { fontSize: 9 }
+  });
+
+  doc.save("Resultados_Concurso_Danza.pdf");
+}
 
 async function loadPublico() {
   const data = await apiGet('resultados');
