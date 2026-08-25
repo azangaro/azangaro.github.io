@@ -164,6 +164,7 @@
     display: inline-flex; align-items: center; gap: 6px;
   }
   .btn-export:hover { border-color: var(--accent); color: #FFF; }
+  .btn-export:disabled { opacity: 0.6; cursor: not-allowed; }
 
   /* Listado de Participantes */
   .categoria-label { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin: 24px 0 10px 4px; }
@@ -257,6 +258,7 @@
     animation: spin 0.8s linear infinite; display: inline-block; flex-shrink: 0;
   }
   .spinner-sm { width: 16px; height: 16px; border-width: 2px; border-top-color: #FFF; }
+  .spinner-xs { width: 12px; height: 12px; border-width: 2px; border-top-color: var(--accent); vertical-align: middle; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px; color: var(--text-dim); }
 </style>
@@ -743,7 +745,7 @@ async function loadOrganizador() {
         ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${Number(d.promedio || 0).toFixed(2)}</td>`).join('')}
         <td data-label="Total"><strong style="color:var(--accent);">${Number(r.total || 0).toFixed(2)}</strong></td>
         <td data-label="Detalle">
-          <button class="btn-export" style="padding:4px 8px; font-size:11px;" onclick="toggleDetalle('${itemKey}')">
+          <button class="btn-export" id="btn-detalle-${itemKey}" style="padding:4px 8px; font-size:11px; min-width:84px;" onclick="toggleDetalle('${itemKey}')">
             ${isOpen ? 'Ocultar ▲' : 'Ver Jueces ▼'}
           </button>
         </td>
@@ -770,9 +772,18 @@ async function loadOrganizador() {
   tbody.innerHTML = html;
 }
 
-function toggleDetalle(id) {
+async function toggleDetalle(id) {
+  // Mostrar spinner de inmediato en el botón mientras se recargan los resultados
+  const btn = document.getElementById('btn-detalle-' + id);
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner spinner-xs"></span>`;
+  }
+
   ordenDetallesAbiertos[id] = !ordenDetallesAbiertos[id];
-  loadOrganizador();
+  await loadOrganizador();
+  // No es necesario restaurar el botón manualmente: loadOrganizador()
+  // reconstruye toda la tabla, así que el botón vuelve a su estado normal solo.
 }
 
 async function loadPublico() {
