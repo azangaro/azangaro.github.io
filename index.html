@@ -1,6 +1,377 @@
-<script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbxBuT6a0tUL7vfkdPTJjBGkN5jiLuebjBZP1IroWkdoRPYvKPSr-pnATOaqU_ZBG8jT/exec';
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concurso de Danza — Puntuación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAFA;
+    --surface: #FFFFFF;
+    --surface-alt: #F4F4F5;
+    --border: #E4E4E7;
+    --text: #18181B;
+    --text-dim: #71717A;
+    --accent: #4F46E5;
+    --accent-soft: #EEF2FF;
+    --live: #10B981;
+    --live-soft: #ECFDF5;
+    --danger: #DC2626;
+    --danger-soft: #FEF2F2;
+    --radius-sm: 10px;
+    --radius: 16px;
+    --radius-lg: 22px;
+    --shadow: 0 1px 2px rgba(24,24,27,0.04), 0 8px 24px -12px rgba(24,24,27,0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  h1, h2, h3, .display { font-family: 'Sora', sans-serif; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+  .mono { font-family: 'Space Mono', monospace; }
+  .hidden { display: none !important; }
+  button { font-family: 'Inter', sans-serif; cursor: pointer; border: none; -webkit-tap-highlight-color: transparent; }
+  input, select { font-family: 'Inter', sans-serif; }
+  a { color: inherit; }
 
+  .container { max-width: 640px; margin: 0 auto; padding: 0 18px 48px; }
+  .container-wide { max-width: 920px; margin: 0 auto; padding: 0 18px 48px; }
+
+  /* ---------- Topbar ---------- */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px; max-width: 920px; margin: 0 auto;
+  }
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px; color: var(--text-dim);
+    text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px 4px;
+  }
+  .back-link:hover { color: var(--text); }
+  .live-pill {
+    display: inline-flex; align-items: center; gap: 6px; background: var(--live-soft);
+    color: var(--live); padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+  .live-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live); animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .live-pill .dot { animation: none; } }
+
+  /* ---------- Landing ---------- */
+  #view-landing {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 32px 20px; text-align: center;
+  }
+  #view-landing .eyebrow { color: var(--accent); letter-spacing: 0.12em; font-size: 12px; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; }
+  #view-landing h1 { font-size: clamp(28px, 7vw, 42px); margin: 0 0 6px; }
+  #view-landing p.sub { color: var(--text-dim); margin: 0 0 36px; font-size: 14.5px; }
+  .role-grid { display: grid; gap: 12px; grid-template-columns: 1fr; width: 100%; max-width: 380px; }
+  @media (min-width: 640px) { .role-grid { max-width: 820px; grid-template-columns: repeat(3, 1fr); } }
+  .role-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; text-align: left; color: var(--text); text-decoration: none;
+    display: flex; align-items: center; gap: 14px; transition: border-color .15s ease, transform .15s ease;
+  }
+  @media (min-width: 640px) { .role-card { flex-direction: column; align-items: flex-start; gap: 12px; padding: 24px 20px; } }
+  .role-card:hover, .role-card:focus-visible { border-color: var(--accent); transform: translateY(-2px); outline: none; }
+  .role-card .icon {
+    width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent);
+    display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0;
+  }
+  .role-card h3 { font-size: 16px; margin: 0 0 2px; }
+  .role-card p { margin: 0; font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+
+  /* ---------- Login Jueces ---------- */
+  .login-box {
+    max-width: 360px; margin: 32px auto 0; background: var(--surface); border-radius: var(--radius-lg);
+    padding: 26px 22px; border: 1px solid var(--border); box-shadow: var(--shadow);
+  }
+  .login-box h2 { font-size: 20px; margin: 0 0 4px; text-align: center; }
+  .login-box .lead { text-align: center; color: var(--text-dim); font-size: 13px; margin: 0 0 20px; }
+  .field-label { font-size: 12px; font-weight: 600; color: var(--text-dim); margin-bottom: 6px; display: block; }
+  select {
+    width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--surface-alt); color: var(--text); font-size: 15px; margin-bottom: 18px; appearance: none;
+  }
+  .pin-display {
+    width: 100%; padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+    background: var(--surface-alt); text-align: center; font-size: 24px; letter-spacing: 0.5em; margin-bottom: 14px;
+    font-family: 'Space Mono', monospace; color: var(--text);
+  }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+  .pin-pad button {
+    background: var(--surface-alt); color: var(--text); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 16px 0; font-size: 17px; font-weight: 600;
+  }
+  .pin-pad button:active { background: var(--accent-soft); border-color: var(--accent); }
+  .pin-pad button.wide { color: var(--text-dim); font-size: 14px; font-weight: 500; }
+  .primary-btn {
+    width: 100%; background: var(--accent); color: #fff; font-weight: 700;
+    padding: 14px; border-radius: var(--radius-sm); font-size: 15px;
+  }
+  .primary-btn:active { opacity: 0.85; }
+  .primary-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .error-msg {
+    color: var(--danger); background: var(--danger-soft); border-radius: var(--radius-sm);
+    font-size: 13px; padding: 10px 12px; margin: 0 0 14px; text-align: center;
+  }
+
+  /* ---------- Panel Jueces ---------- */
+  .juez-header { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 4px; }
+  .juez-header h2 { font-size: 19px; }
+  .logout-btn { background: none; color: var(--text-dim); font-size: 12.5px; font-weight: 600; text-decoration: underline; padding: 6px; }
+
+  .categoria-label { color: var(--accent); font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin: 22px 0 8px; }
+  .participante-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--surface); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px;
+    border: 1px solid var(--border);
+  }
+  .participante-row .name { font-weight: 600; font-size: 14.5px; }
+  .participante-row .status { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .participante-row.done { border-color: var(--live); background: var(--live-soft); }
+  .participante-row.done .status { color: var(--live); font-weight: 600; }
+  .participante-row button {
+    background: var(--surface-alt); color: var(--text); padding: 9px 15px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 600; border: 1px solid var(--border); flex-shrink: 0;
+  }
+
+  .score-panel {
+    background: var(--surface); border-radius: var(--radius-lg); padding: 22px; margin-top: 16px;
+    border: 1px solid var(--border); box-shadow: var(--shadow);
+  }
+  .score-panel h3 { font-size: 18px; margin: 0 0 18px; }
+  .back-to-list {
+    background: none; color: var(--text-dim); font-size: 13px; font-weight: 600; padding: 0 0 14px;
+    display: block;
+  }
+  .back-to-list:hover { color: var(--accent); }
+  .panel-total {
+    text-align: center; font-family: 'Space Mono', monospace; font-weight: 700; font-size: 17px;
+    color: var(--accent); background: var(--accent-soft); border-radius: var(--radius-sm);
+    padding: 10px; margin-bottom: 6px;
+  }
+  .criterio-row { margin-bottom: 18px; }
+  .criterio-row label { display: flex; justify-content: space-between; align-items: baseline; font-size: 13.5px; margin-bottom: 8px; color: var(--text-dim); font-weight: 500; }
+  .criterio-row .row-inputs { display: flex; align-items: center; gap: 12px; }
+  .criterio-row input[type=range] { flex: 1; accent-color: var(--accent); height: 6px; }
+  .criterio-row input[type=number] {
+    width: 72px; flex-shrink: 0; text-align: center; padding: 8px 6px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border); background: var(--surface-alt); color: var(--text);
+    font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700;
+  }
+  .criterio-row input[type=number]:focus { outline: none; border-color: var(--accent); }
+  .criterio-row .val { color: var(--accent); font-weight: 700; font-family: 'Space Mono', monospace; font-size: 14px; }
+  .panel-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .panel-actions button { flex: 1; padding: 13px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; }
+  .cancel-btn { background: var(--surface-alt); color: var(--text-dim); border: 1px solid var(--border); }
+  .save-status { font-size: 12.5px; margin-top: 10px; text-align: center; color: var(--text-dim); font-weight: 500; }
+
+  /* ---------- Panel Organizador ---------- */
+  h2.section-title { font-size: 19px; margin: 20px 0 4px; }
+  .section-sub { color: var(--text-dim); font-size: 13px; margin: 0 0 18px; }
+
+  .table-wrap { border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 12px 14px; background: var(--surface-alt); color: var(--text-dim);
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  tbody td { padding: 12px 14px; border-top: 1px solid var(--border); }
+  tbody tr:hover { background: var(--surface-alt); }
+  .rank-badge {
+    display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px;
+    border-radius: 50%; font-family: 'Space Mono', monospace; font-size: 11.5px; font-weight: 700;
+    background: var(--surface-alt); color: var(--text-dim); border: 1px solid var(--border);
+  }
+  .rank-badge.top { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .total-cell { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 14.5px; }
+  .progress-badge { font-size: 11px; padding: 3px 9px; border-radius: 999px; font-family: 'Space Mono', monospace; font-weight: 700; }
+  .progress-badge.complete { background: var(--live-soft); color: var(--live); }
+  .progress-badge.pending { background: var(--accent-soft); color: var(--accent); }
+  .empty-state { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 14px; }
+
+  @media (max-width: 640px) {
+    .table-wrap thead { display: none; }
+    .table-wrap table, .table-wrap tbody, .table-wrap tr, .table-wrap td { display: block; width: 100%; }
+    .table-wrap tr { padding: 14px 16px; border-top: 1px solid var(--border); }
+    .table-wrap tr:first-child { border-top: none; }
+    .table-wrap td { padding: 4px 0; border: none; display: flex; justify-content: space-between; align-items: center; }
+    .table-wrap td::before { content: attr(data-label); color: var(--text-dim); font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    .table-wrap td.row-head { padding-bottom: 8px; }
+    .table-wrap td.row-head::before { content: ''; }
+    .table-wrap td.row-head .name-line { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; color: var(--text); }
+  }
+
+  /* ---------- Vista Público ---------- */
+  #view-publico { min-height: 100vh; }
+  .publico-header { text-align: center; padding: 26px 20px 6px; max-width: 640px; margin: 0 auto; }
+  .publico-header h1 { font-size: clamp(24px, 6vw, 34px); margin: 10px 0 0; }
+
+  .leaderboard { max-width: 640px; margin: 22px auto 40px; padding: 0 18px; }
+  .lb-row {
+    display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--surface);
+    border-radius: var(--radius); margin-bottom: 8px; border: 1px solid var(--border);
+    transition: background .5s ease, border-color .3s ease;
+  }
+  .lb-row.rank-1 { border-color: var(--accent); background: var(--accent-soft); }
+  .lb-row .lb-rank {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace; font-weight: 700; font-size: 13px;
+    background: var(--surface-alt); color: var(--text-dim); border: 1px solid var(--border);
+  }
+  .lb-row.rank-1 .lb-rank { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .lb-row.rank-2 .lb-rank, .lb-row.rank-3 .lb-rank { color: var(--text); border-color: var(--text-dim); }
+  .lb-row .lb-info { flex: 1; min-width: 0; }
+  .lb-row .lb-name { font-weight: 700; font-size: 14.5px; }
+  .lb-row .lb-cat { font-size: 12px; color: var(--text-dim); }
+  .lb-row .lb-total { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 17px; color: var(--accent); flex-shrink: 0; }
+  .lb-row.updated { background: var(--live-soft); border-color: var(--live); }
+
+  /* ---------- Avisos y Utilidades ---------- */
+  .warning-banner {
+    background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; border-radius: var(--radius);
+    padding: 14px 16px; margin: 16px 0; font-size: 13px; line-height: 1.5;
+  }
+  .warning-banner strong { display: block; margin-bottom: 4px; font-size: 13px; }
+  .warning-banner ul { margin: 4px 0 0; padding-left: 18px; }
+  .warning-banner li { margin-bottom: 3px; }
+
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+    border: 2.5px solid var(--border); border-top-color: var(--accent);
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 1.4s; } }
+  .loading-state {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    padding: 48px 20px; color: var(--text-dim); font-size: 13px; font-weight: 500;
+  }
+  .loading-state .spinner { width: 24px; height: 24px; }
+  .btn-spinner {
+    width: 15px; height: 15px; border-radius: 50%; display: inline-block; vertical-align: -3px; margin-right: 7px;
+    border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; animation: spin .7s linear infinite;
+  }
+</style>
+</head>
+<body>
+
+<!-- ======================= LANDING ======================= -->
+<div id="view-landing">
+  <div class="eyebrow">Sistema de puntuación</div>
+  <h1>Concurso de Danza</h1>
+  <p class="sub">Elige cómo vas a entrar</p>
+  <div class="role-grid">
+    <a class="role-card" href="#jueces" tabindex="0">
+      <span class="icon">🎙️</span>
+      <span>
+        <h3>Soy jurado</h3>
+        <p>Ingresa tu PIN y califica por criterio.</p>
+      </span>
+    </a>
+    <a class="role-card" href="#organizador" tabindex="0">
+      <span class="icon">🗂️</span>
+      <span>
+        <h3>Organizador</h3>
+        <p>Detalle y avance de cada jurado.</p>
+      </span>
+    </a>
+    <a class="role-card" href="#publico" tabindex="0">
+      <span class="icon">🏆</span>
+      <span>
+        <h3>Pantalla pública</h3>
+        <p>Marcador en vivo para proyectar.</p>
+      </span>
+    </a>
+  </div>
+</div>
+
+<!-- ======================= JUECES ======================= -->
+<div id="view-jueces" class="hidden">
+  <div class="topbar">
+    <a class="back-link" href="#">&larr; Inicio</a>
+  </div>
+  <div class="container">
+    <div id="jueces-avisos"></div>
+    <div id="jueces-login" class="login-box">
+      <h2>Acceso jurado</h2>
+      <p class="lead">Selecciona tu nombre e ingresa tu PIN</p>
+      <div id="login-loading" class="loading-state">
+        <span class="spinner"></span> Cargando datos…
+      </div>
+      <div class="error-msg hidden" id="login-error"></div>
+      <div id="login-fields" class="hidden">
+        <label class="field-label">Jurado</label>
+        <select id="select-juez"></select>
+        <div class="pin-display" id="pin-display">••••</div>
+        <div class="pin-pad" id="pin-pad"></div>
+        <button class="primary-btn" id="btn-login">Ingresar</button>
+      </div>
+    </div>
+
+    <div id="jueces-panel" class="hidden">
+      <div class="juez-header">
+        <h2 id="juez-nombre"></h2>
+        <button class="logout-btn" id="btn-logout">Salir</button>
+      </div>
+      <div id="participantes-list"></div>
+      <div id="score-panel-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= ORGANIZADOR ======================= -->
+<div id="view-organizador" class="hidden">
+  <div class="topbar">
+    <a class="back-link" href="#">&larr; Inicio</a>
+    <span class="live-pill"><span class="dot"></span> En vivo</span>
+  </div>
+  <div class="container-wide">
+    <h2 class="section-title">Panel del organizador</h2>
+    <p class="section-sub">Se actualiza automáticamente cada 5 segundos</p>
+    <div id="org-avisos"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr id="org-thead-row"></tr>
+        </thead>
+        <tbody id="org-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= PÚBLICO ======================= -->
+<div id="view-publico" class="hidden">
+  <div class="topbar" style="justify-content:center;">
+    <a class="back-link" href="#" style="position:absolute; left:18px;">&larr;</a>
+    <span class="live-pill"><span class="dot"></span> En vivo</span>
+  </div>
+  <div class="publico-header">
+    <h1>Marcador</h1>
+  </div>
+  <div class="leaderboard">
+    <div id="publico-avisos"></div>
+    <div id="publico-leaderboard"></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN DE LA API (Apps Script)
+===================================================================== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbxrlDZKyQrW5Nv17jiA5o0FSDdAgjvtztPVSumao5yPJFRI-DXNl-rLC4qGGE_NF4d6/exec';
+
+/* ------------------------- Utilidades HTTP ------------------------- */
 async function apiGet(action, params = {}) {
   const url = new URL(API_URL);
   url.searchParams.set('action', action);
@@ -10,6 +381,7 @@ async function apiGet(action, params = {}) {
 }
 
 async function apiPost(body) {
+  // Se utiliza text/plain para evitar peticiones OPTIONS pre-flight complejas en Apps Script
   const res = await fetch(API_URL, { 
     method: 'POST', 
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -18,51 +390,68 @@ async function apiPost(body) {
   return res.json();
 }
 
-let STATE = { jueces: [], participantes: [], criterios: [], juezActual: null, pin: '', misPuntajes: {}, resultadosTimer: null };
+let STATE = {
+  jueces: [], participantes: [], criterios: [],
+  juezActual: null, pin: '',
+  misPuntajes: {},
+  resultadosTimer: null
+};
 
+function renderAvisos(containerId, avisos) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!avisos || avisos.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="warning-banner">
+      <strong>⚠️ Revisa la Google Sheet — hay incoherencias en los datos:</strong>
+      <ul>${avisos.map(a => `<li>${a}</li>`).join('')}</ul>
+    </div>`;
+}
+
+/* ------------------------- Enrutador ------------------------- */
 const VIEWS = ['landing', 'jueces', 'organizador', 'publico'];
 function router() {
   const hash = (location.hash || '#').slice(1);
   const view = VIEWS.includes(hash) ? hash : 'landing';
-  VIEWS.forEach(v => {
-    const el = document.getElementById('view-' + v);
-    if(v === view) {
-      el.classList.remove('hidden');
-      el.style.animation = 'none';
-      el.offsetHeight;
-      el.style.animation = null;
-    } else {
-      el.classList.add('hidden');
-    }
-  });
+  VIEWS.forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== view));
   
   clearInterval(STATE.resultadosTimer);
   if (view === 'jueces') initJueces();
   if (view === 'organizador') { loadOrganizador(); STATE.resultadosTimer = setInterval(loadOrganizador, 5000); }
-  if (view === 'publico') { loadPublico(true); STATE.resultadosTimer = setInterval(() => loadPublico(false), 4000); }
+  if (view === 'publico') { loadPublico(); STATE.resultadosTimer = setInterval(loadPublico, 4000); }
 }
 window.addEventListener('hashchange', router);
 
+/* ------------------------- Carga Inicial ------------------------- */
 async function loadInit() {
   const data = await apiGet('init');
-  if (!data.ok) throw new Error(data.error || 'Error de conexión');
-  STATE.jueces = data.jueces || [];
-  STATE.participantes = (data.participantes || []).sort((a, b) => (a.Orden || a.orden || 0) - (b.Orden || b.orden || 0));
-  STATE.criterios = data.criterios || [];
+  if (!data.ok) throw new Error(data.error || 'Error cargando datos');
+  STATE.jueces = data.jueces;
+  STATE.participantes = data.participantes.sort((a, b) => (a.Orden || 0) - (b.Orden || 0));
+  STATE.criterios = data.criterios;
+  renderAvisos('jueces-avisos', data.avisos);
   return data;
 }
 
-/* Teclado PIN */
+/* ======================= VISTA JUECES ======================= */
 let pinBuffer = '';
 function renderPinPad() {
   const pad = document.getElementById('pin-pad');
   pad.innerHTML = '';
-  ['1','2','3','4','5','6','7','8','9','⌫','0','✓'].forEach(k => {
+  ['1','2','3','4','5','6','7','8','9','borrar','0','ok'].forEach(k => {
     const btn = document.createElement('button');
-    btn.textContent = k;
-    if (k === '⌫') { btn.className = 'wide'; btn.onclick = () => { pinBuffer = pinBuffer.slice(0, -1); updatePinDisplay(); }; }
-    else if (k === '✓') { btn.className = 'wide'; btn.onclick = () => document.getElementById('btn-login').click(); }
-    else { btn.onclick = () => { if (pinBuffer.length < 6) pinBuffer += k; updatePinDisplay(); }; }
+    if (k === 'borrar') { 
+      btn.textContent = '⌫'; 
+      btn.className = 'wide'; 
+      btn.onclick = () => { pinBuffer = pinBuffer.slice(0, -1); updatePinDisplay(); }; 
+    } else if (k === 'ok') { 
+      btn.textContent = '✓'; 
+      btn.className = 'wide'; 
+      btn.onclick = () => document.getElementById('btn-login').click(); 
+    } else { 
+      btn.textContent = k; 
+      btn.onclick = () => { if (pinBuffer.length < 6) pinBuffer += k; updatePinDisplay(); }; 
+    }
     pad.appendChild(btn);
   });
 }
@@ -81,13 +470,18 @@ async function initJueces() {
   updatePinDisplay();
   renderPinPad();
 
-  try { await loadInit(); } catch (err) { showLoginError(err.message); return; }
-  
+  try {
+    await loadInit();
+  } catch (err) {
+    document.getElementById('login-loading').classList.add('hidden');
+    showLoginError(err.message);
+    return;
+  }
   document.getElementById('login-loading').classList.add('hidden');
   document.getElementById('login-fields').classList.remove('hidden');
 
   const sel = document.getElementById('select-juez');
-  sel.innerHTML = STATE.jueces.map(j => `<option value="${j.ID || j.id}">${j.Nombre || j.nombre}</option>`).join('');
+  sel.innerHTML = STATE.jueces.map(j => `<option value="${j.ID}">${j.Nombre}</option>`).join('');
 
   const saved = localStorage.getItem('danza_juez');
   if (saved) {
@@ -107,23 +501,30 @@ function showLoginError(msg) {
 document.getElementById('btn-login').addEventListener('click', async () => {
   const btn = document.getElementById('btn-login');
   const juezId = document.getElementById('select-juez').value;
+  const pin = pinBuffer;
+  document.getElementById('login-error').classList.add('hidden');
+  
   btn.disabled = true;
-  btn.textContent = 'Verificando...';
+  const originalText = btn.textContent;
+  btn.innerHTML = '<span class="btn-spinner"></span>Ingresando…';
   
   try {
-    const res = await apiPost({ action: 'login', juezId, pin: pinBuffer });
+    const res = await apiPost({ action: 'login', juezId, pin });
     btn.disabled = false;
-    btn.textContent = 'Ingresar al Panel';
-    if (!res.ok) { showLoginError(res.error); return; }
+    btn.textContent = originalText;
     
-    const nombreJuez = res.Nombre || res.nombre || 'Jurado';
-    STATE.juezActual = { id: juezId, nombre: nombreJuez };
-    STATE.pin = pinBuffer;
-    localStorage.setItem('danza_juez', JSON.stringify({ juezId, pin: pinBuffer, nombre: nombreJuez }));
+    if (!res.ok) { 
+      showLoginError(res.error); 
+      return; 
+    }
+    
+    STATE.juezActual = { id: juezId, nombre: res.nombre };
+    STATE.pin = pin;
+    localStorage.setItem('danza_juez', JSON.stringify({ juezId, pin, nombre: res.nombre }));
     await entrarPanelJuez();
   } catch(e) {
     btn.disabled = false;
-    btn.textContent = 'Ingresar al Panel';
+    btn.textContent = originalText;
     showLoginError("Error de conexión al autenticar.");
   }
 });
@@ -141,24 +542,21 @@ async function entrarPanelJuez() {
   document.getElementById('jueces-login').classList.add('hidden');
   document.getElementById('jueces-panel').classList.remove('hidden');
   document.getElementById('juez-nombre').textContent = STATE.juezActual.nombre;
-  document.getElementById('participantes-list').innerHTML = `<div class="loading-state"><div class="spinner"></div>Cargando datos...</div>`;
+  document.getElementById('participantes-list').innerHTML = `<div class="loading-state"><span class="spinner"></span> Cargando danzas…</div>`;
   
   const mp = await apiGet('misPuntajes', { juezId: STATE.juezActual.id });
   STATE.misPuntajes = {};
-  (mp.puntajes || []).forEach(p => { 
-    const pId = p.ParticipanteID || p.participanteId;
-    const cId = p.CriterioID || p.criterioId;
-    const punt = p.Puntaje ?? p.puntaje ?? 0;
-    STATE.misPuntajes[pId + '|' + cId] = punt; 
+  (mp.puntajes || []).forEach(p => {
+    STATE.misPuntajes[p.ParticipanteID + '|' + p.CriterioID] = p.Puntaje;
   });
   renderParticipantesJuez();
 }
 
 function calcularTotalParticipante(participanteId) {
-  let total = 0, count = 0;
+  let total = 0;
+  let count = 0;
   STATE.criterios.forEach(c => {
-    const cId = c.ID || c.id;
-    const key = participanteId + '|' + cId;
+    const key = participanteId + '|' + c.ID;
     if (key in STATE.misPuntajes) { total += Number(STATE.misPuntajes[key]); count++; }
   });
   return count === STATE.criterios.length ? total : null;
@@ -170,25 +568,21 @@ function renderParticipantesJuez() {
   let lastCat = null;
   
   STATE.participantes.forEach(p => {
-    const pId = p.ID || p.id;
-    const pNombre = p.Nombre || p.nombre;
-    const pCat = p.Categoria || p.categoria || 'Sin Categoría';
-
-    if (pCat !== lastCat) {
-      lastCat = pCat;
+    if (p.Categoria !== lastCat) {
+      lastCat = p.Categoria;
       const lbl = document.createElement('div');
       lbl.className = 'categoria-label';
-      lbl.textContent = pCat;
+      lbl.textContent = p.Categoria;
       wrap.appendChild(lbl);
     }
-    const total = calcularTotalParticipante(pId);
+    const total = calcularTotalParticipante(p.ID);
     const scored = total !== null;
     const row = document.createElement('div');
     row.className = 'participante-row' + (scored ? ' done' : '');
     row.innerHTML = `
       <div>
-        <div class="name">${pNombre}</div>
-        <div class="status">${scored ? `✓ Puntaje: ${total.toFixed(2)} pts` : 'Pendiente'}</div>
+        <div class="name">${p.Nombre}</div>
+        <div class="status">${scored ? `✓ Calificado — ${total.toFixed(2)} pts` : 'Pendiente'}</div>
       </div>
       <button>${scored ? 'Editar' : 'Calificar'}</button>`;
     row.querySelector('button').onclick = () => abrirPanelPuntuacion(p);
@@ -200,265 +594,170 @@ function abrirPanelPuntuacion(participante) {
   document.getElementById('participantes-list').classList.add('hidden');
   const wrap = document.getElementById('score-panel-wrap');
   const valores = {};
-  const pId = participante.ID || participante.id;
-  const pNombre = participante.Nombre || participante.nombre;
   
   STATE.criterios.forEach(c => {
-    const cId = c.ID || c.id;
-    const pesoMax = Number(c.PesoMax || c.pesoMax || 100);
-    valores[cId] = STATE.misPuntajes[pId + '|' + cId] ?? Math.round(pesoMax / 2);
+    valores[c.ID] = STATE.misPuntajes[participante.ID + '|' + c.ID] ?? Math.round(Number(c.PesoMax) / 2);
   });
 
   wrap.innerHTML = `
     <div class="score-panel">
-      <button class="back-link" id="btn-volver" style="margin-bottom:16px;">&larr; Volver</button>
-      <h3 style="margin-bottom: 20px;">${pNombre}</h3>
-      ${STATE.criterios.map(c => {
-        const cId = c.ID || c.id;
-        const cNombre = c.Nombre || c.nombre || c.criterioNombre || c.criterio || 'Criterio';
-        const pesoMax = Number(c.PesoMax || c.pesoMax || 100);
-        return `
+      <button class="back-to-list" id="btn-volver">&larr; Volver a la lista</button>
+      <h3>${participante.Nombre}</h3>
+      ${STATE.criterios.map(c => `
         <div class="criterio-row">
-          <label><span>${cNombre}</span><span id="val-${cId}" style="color:var(--accent); font-family:'Space Mono';">${Number(valores[cId]).toFixed(2)} / ${pesoMax}</span></label>
+          <label><span>${c.Nombre}</span><span class="val" id="val-${c.ID}">${Number(valores[c.ID]).toFixed(2)} / ${c.PesoMax}</span></label>
           <div class="row-inputs">
-            <input type="range" min="0" max="${pesoMax}" step="0.5" value="${valores[cId]}" id="range-${cId}">
-            <input type="text" inputmode="decimal" class="score-input" value="${Number(valores[cId]).toFixed(2)}" id="num-${cId}">
+            <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}">
+            <input type="number" min="0" max="${c.PesoMax}" step="0.01" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}">
           </div>
-        </div>`;
-      }).join('')}
+        </div>`).join('')}
       <div class="panel-total" id="panel-total"></div>
-      <button class="primary-btn" id="btn-guardar">Guardar Puntuaciones</button>
-      <div id="save-status" style="text-align:center; margin-top:10px; font-size:13px; color:var(--text-dim);"></div>
+      <div class="panel-actions">
+        <button class="cancel-btn" id="btn-cancelar">Cancelar</button>
+        <button class="primary-btn" id="btn-guardar">Guardar puntajes</button>
+      </div>
+      <div class="save-status" id="save-status"></div>
     </div>`;
 
   function actualizarTotalPanel() {
     let total = 0;
-    STATE.criterios.forEach(c => { 
-      const cId = c.ID || c.id;
-      const rawVal = document.getElementById(`num-${cId}`).value.replace(',', '.');
-      total += Number(rawVal) || 0; 
-    });
-    document.getElementById('panel-total').textContent = `PUNTAJE TOTAL: ${total.toFixed(2)} PTS`;
+    STATE.criterios.forEach(c => { total += Number(document.getElementById(`num-${c.ID}`).value || 0); });
+    document.getElementById('panel-total').textContent = `Total: ${total.toFixed(2)} pts`;
   }
   actualizarTotalPanel();
 
   STATE.criterios.forEach(c => {
-    const cId = c.ID || c.id;
-    const range = document.getElementById(`range-${cId}`);
-    const num = document.getElementById(`num-${cId}`);
-    const pesoMax = Number(c.PesoMax || c.pesoMax || 100);
+    const range = document.getElementById(`range-${c.ID}`);
+    const num = document.getElementById(`num-${c.ID}`);
+    const pesoMax = Number(c.PesoMax);
     
-    range.addEventListener('input', () => {
-      const v = Number(range.value);
+    const sync = (value) => {
+      let v = Math.min(pesoMax, Math.max(0, Number(value) || 0));
+      range.value = v;
       num.value = v.toFixed(2);
-      document.getElementById(`val-${cId}`).textContent = `${v.toFixed(2)} / ${pesoMax}`;
+      document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
       actualizarTotalPanel();
-    });
-
-    num.addEventListener('input', () => {
-      let rawVal = num.value.replace(',', '.');
-      let valNum = parseFloat(rawVal);
-      if (!isNaN(valNum)) {
-        valNum = Math.min(pesoMax, Math.max(0, valNum));
-        range.value = valNum;
-        document.getElementById(`val-${cId}`).textContent = `${valNum.toFixed(2)} / ${pesoMax}`;
-      }
-      actualizarTotalPanel();
-    });
-
-    num.addEventListener('blur', () => {
-      let rawVal = num.value.replace(',', '.');
-      let valNum = parseFloat(rawVal) || 0;
-      valNum = Math.min(pesoMax, Math.max(0, valNum));
-      num.value = valNum.toFixed(2);
-      range.value = valNum;
-      document.getElementById(`val-${cId}`).textContent = `${valNum.toFixed(2)} / ${pesoMax}`;
-      actualizarTotalPanel();
-    });
+    };
+    
+    range.addEventListener('input', () => sync(range.value));
+    num.addEventListener('input', () => sync(num.value));
+    num.addEventListener('blur', () => sync(num.value));
   });
 
-  document.getElementById('btn-volver').onclick = () => {
+  function volverALista() {
     wrap.innerHTML = '';
     document.getElementById('participantes-list').classList.remove('hidden');
-  };
+  }
+
+  document.getElementById('btn-volver').onclick = volverALista;
+  document.getElementById('btn-cancelar').onclick = volverALista;
   
   document.getElementById('btn-guardar').onclick = async () => {
-    const btn = document.getElementById('btn-guardar');
+    const btnGuardar = document.getElementById('btn-guardar');
     const status = document.getElementById('save-status');
-    btn.disabled = true;
-    status.textContent = 'Enviando calificaciones...';
+    btnGuardar.disabled = true;
+    status.textContent = 'Guardando…';
 
     for (const c of STATE.criterios) {
-      const cId = c.ID || c.id;
-      const rawVal = document.getElementById(`num-${cId}`).value.replace(',', '.');
-      const puntaje = Number(rawVal) || 0;
+      const puntaje = Number(document.getElementById(`num-${c.ID}`).value);
       try {
-        await apiPost({ 
+        const res = await apiPost({
           action: 'puntuar', 
           juezId: STATE.juezActual.id, 
-          pin: STATE.pin, 
-          participanteId: pId, 
-          criterioId: cId, 
-          puntaje 
+          pin: STATE.pin,
+          participanteId: participante.ID, 
+          criterioId: c.ID, 
+          puntaje
         });
-        STATE.misPuntajes[pId + '|' + cId] = puntaje;
+        
+        if (!res.ok) { 
+          status.textContent = 'Error: ' + res.error; 
+          btnGuardar.disabled = false;
+          return; 
+        }
+        STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
       } catch(e) {
-        status.textContent = 'Error de comunicación.';
-        btn.disabled = false;
+        status.textContent = 'Error de conexión al guardar.';
+        btnGuardar.disabled = false;
         return;
       }
     }
     
-    status.textContent = '✓ Guardado exitosamente';
+    const total = calcularTotalParticipante(participante.ID);
+    status.textContent = `✓ Guardado — Total: ${total.toFixed(2)} pts`;
     renderParticipantesJuez();
-    setTimeout(() => { wrap.innerHTML = ''; document.getElementById('participantes-list').classList.remove('hidden'); }, 800);
+    setTimeout(volverALista, 900);
   };
 }
 
-/* Organizador */
+/* ======================= VISTA ORGANIZADOR ======================= */
+let organizadorCargado = false;
 async function loadOrganizador() {
+  if (!organizadorCargado) {
+    document.getElementById('org-tbody').innerHTML = `<tr><td colspan="99"><div class="loading-state"><span class="spinner"></span> Cargando resultados…</div></td></tr>`;
+  }
   if (!STATE.criterios.length) await loadInit();
+  
   const data = await apiGet('resultados');
   if (!data.ok) return;
+  organizadorCargado = true;
+  renderAvisos('org-avisos', data.avisos);
 
-  const listCriterios = data.criterios || STATE.criterios;
   const thead = document.getElementById('org-thead-row');
-  thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` + 
-    listCriterios.map(c => `<th>${c.Nombre || c.nombre || c.criterioNombre || c.criterio || 'Criterio'}</th>`).join('') + 
-    `<th>Total</th>`;
+  thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` +
+    data.criterios.map(c => `<th>${c.Nombre}</th>`).join('') +
+    `<th>Jueces</th><th>Total</th>`;
 
   const tbody = document.getElementById('org-tbody');
-  tbody.innerHTML = (data.resultados || []).map((r, i) => {
-    const pNombre = r.Nombre || r.nombre || 'Sin nombre';
-    const pCat = r.Categoria || r.categoria || '—';
-    const pTotal = typeof r.total === 'number' ? r.total.toFixed(2) : (r.total || '0.00');
-
-    const celdasDetalle = (r.detalle || []).map(d => {
-      const cNom = d.criterioNombre || d.criterio || d.Criterio || d.Nombre || d.nombre || 'Criterio';
-      const prom = typeof d.promedio === 'number' ? d.promedio.toFixed(2) : (d.promedio || '0.00');
-      return `<td data-label="${cNom}">${prom}</td>`;
-    }).join('');
-
-    return `
+  tbody.innerHTML = data.resultados.map((r, i) => `
     <tr>
-      <td data-label="#">${i + 1}</td>
-      <td data-label="Participante"><strong>${pNombre}</strong></td>
-      <td data-label="Categoría">${pCat}</td>
-      ${celdasDetalle}
-      <td data-label="Total"><strong style="color:var(--accent);">${pTotal}</strong></td>
-    </tr>`;
-  }).join('');
+      <td class="row-head" data-label="">
+        <span class="name-line"><span class="rank-badge ${i < 3 ? 'top' : ''}">${i + 1}</span> ${r.nombre}</span>
+      </td>
+      <td data-label="Categoría">${r.categoria || '—'}</td>
+      ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${d.promedio.toFixed(2)}</td>`).join('')}
+      <td data-label="Jueces"><span class="progress-badge ${r.juecesCompletos >= data.totalJueces && data.totalJueces > 0 ? 'complete' : 'pending'}">${r.juecesCompletos}/${data.totalJueces}</span></td>
+      <td data-label="Total"><span class="total-cell">${r.total.toFixed(2)}</span></td>
+    </tr>`).join('') || `<tr><td colspan="99" class="empty-state">Aún no hay participantes o puntajes registrados</td></tr>`;
 }
 
-/* Público */
-async function loadPublico(isFirstLoad = false) {
-  const container = document.getElementById('publico-leaderboard');
-  
-  if (isFirstLoad && !container.querySelector('.lb-card')) {
-    container.innerHTML = `<div class="loading-state"><div class="spinner"></div> Actualizando puntuaciones...</div>`;
+/* ======================= VISTA PÚBLICO ======================= */
+let prevTotales = {};
+let publicoCargado = false;
+async function loadPublico() {
+  if (!publicoCargado) {
+    document.getElementById('publico-leaderboard').innerHTML = `<div class="loading-state"><span class="spinner"></span> Cargando marcador…</div>`;
   }
-
   const data = await apiGet('resultados');
   if (!data.ok) return;
+  publicoCargado = true;
+  renderAvisos('publico-avisos', data.avisos);
 
-  const openCards = new Set();
-  document.querySelectorAll('.lb-card.active').forEach(c => openCards.add(c.dataset.id));
+  const el = document.getElementById('publico-leaderboard');
+  if (data.resultados.length === 0) {
+    el.innerHTML = `<div class="empty-state">Esperando los primeros puntajes…</div>`;
+    return;
+  }
 
-  container.innerHTML = (data.resultados || []).map((r, i) => {
-    const rId = r.ID || r.id;
-    const rNombre = r.Nombre || r.nombre || 'Sin Nombre';
-    const rCat = r.Categoria || r.categoria || '';
-    const rTotal = typeof r.total === 'number' ? r.total.toFixed(2) : (r.total || '0.00');
-    const isOpen = openCards.has(String(rId));
-
+  el.innerHTML = data.resultados.map((r, i) => {
+    const changed = prevTotales[r.id] !== undefined && prevTotales[r.id] !== r.total;
+    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : '';
     return `
-      <div class="lb-card ${i === 0 ? 'rank-1' : ''} ${isOpen ? 'active' : ''}" data-id="${rId}">
-        <div class="lb-header" onclick="toggleDetalleCard(this, '${rId}')">
-          <span class="lb-rank">${i + 1}</span>
-          <div style="flex:1;">
-            <div style="font-weight:700;">${rNombre}</div>
-            <div style="font-size:12px; color:var(--text-dim);">${rCat}</div>
-          </div>
-          <div class="lb-total-btn">
-            ${rTotal}
-            <span class="chevron">▼</span>
-          </div>
-        </div>
-        <div class="lb-detail" id="detail-${rId}">
-          ${r.votos ? buildDetailHtml(r.votos) : '<div class="loading-state" style="padding:15px;"><div class="spinner spinner-sm"></div> Cargando desglose...</div>'}
-        </div>
+      <div class="lb-row ${rankClass} ${changed ? 'updated' : ''}">
+        <span class="lb-rank">${i + 1}</span>
+        <span class="lb-info">
+          <div class="lb-name">${r.nombre}</div>
+          <div class="lb-cat">${r.categoria || ''}</div>
+        </span>
+        <span class="lb-total">${r.total.toFixed(2)}</span>
       </div>`;
   }).join('');
 
-  openCards.forEach(id => fetchDetalleParticipante(id));
+  data.resultados.forEach(r => { prevTotales[r.id] = r.total; });
 }
 
-// CORRECCIÓN PRINCIPAL: Mapeo exacto del nombre del criterio utilizando STATE.criterios como respaldo.
-function buildDetailHtml(votos) {
-  if (!votos || !votos.length) return `<div style="color:var(--text-dim); text-align:center; padding:8px;">Sin notas registradas por jurados aún</div>`;
-  
-  const juradosMap = {};
-  votos.forEach(v => {
-    const jName = v.juezNombre || v.JuezNombre || v.Juez || v.juezId || 'Jurado';
-    if (!juradosMap[jName]) juradosMap[jName] = [];
-    juradosMap[jName].push(v);
-  });
-
-  return Object.keys(juradosMap).map(juez => {
-    const totalJuez = juradosMap[juez].reduce((a, b) => a + Number(b.puntaje ?? b.Puntaje ?? 0), 0);
-    const tagsHtml = juradosMap[juez].map(v => {
-      const cId = v.criterioId || v.CriterioID || v.criterioID;
-      
-      // Buscar el nombre real del criterio en el array STATE.criterios
-      let cNom = v.criterioNombre || v.criterio || v.Criterio || v.Nombre || v.nombre;
-      
-      if (!cNom || cNom === 'Criterio') {
-        const critObj = STATE.criterios.find(c => String(c.ID || c.id) === String(cId));
-        if (critObj) {
-          cNom = critObj.Nombre || critObj.nombre || critObj.criterioNombre;
-        }
-      }
-      
-      cNom = cNom || 'Criterio';
-      const pVal = Number(v.puntaje ?? v.Puntaje ?? 0).toFixed(2);
-      return `<span class="criterio-tag">${cNom}: <span>${pVal}</span></span>`;
-    }).join('');
-
-    return `
-    <div class="juez-detail-row">
-      <div class="juez-name">
-        <span>🎙️ ${juez}</span>
-        <span style="color:var(--accent); font-family:'Space Mono';">${totalJuez.toFixed(2)} pts</span>
-      </div>
-      <div class="criterio-tag-list">
-        ${tagsHtml}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function toggleDetalleCard(headerEl, participanteId) {
-  const card = headerEl.parentElement;
-  card.classList.toggle('active');
-  if (card.classList.contains('active')) {
-    await fetchDetalleParticipante(participanteId);
-  }
-}
-
-async function fetchDetalleParticipante(participanteId) {
-  const detailEl = document.getElementById(`detail-${participanteId}`);
-  if (!detailEl) return;
-  
-  try {
-    const res = await apiGet('detalleParticipante', { participanteId });
-    const votos = res.votos || (res.participante && res.participante.votos);
-    if (res.ok && votos) {
-      detailEl.innerHTML = buildDetailHtml(votos);
-    }
-  } catch(e) {
-    detailEl.innerHTML = `<div style="color:var(--danger); text-align:center;">Error al obtener notas</div>`;
-  }
-}
-
+/* ------------------------- Inicialización ------------------------- */
 router();
 </script>
+</body>
+</html>
