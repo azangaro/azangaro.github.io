@@ -362,7 +362,7 @@
   </div>
 </div>
 
-<!-- PÚBLICO / TABLA DE POSICIONES -->
+<!-- PÚBLICO -->
 <div id="view-publico" class="hidden view-container">
   <div class="topbar" style="justify-content:center;">
     <a class="back-link" href="#" style="position:absolute; left:16px;">&larr;</a>
@@ -371,13 +371,7 @@
   <div class="container">
     <h1 style="text-align:center; margin: 20px 0;">Tabla de Posiciones</h1>
     <div id="publico-avisos"></div>
-    <!-- ICONO DE ESPERA AL CARGAR TABLA DE POSICIONES -->
-    <div id="publico-leaderboard">
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <span>Cargando posiciones en tiempo real...</span>
-      </div>
-    </div>
+    <div id="publico-leaderboard"></div>
   </div>
 </div>
 
@@ -426,11 +420,7 @@ function router() {
     loadOrganizador(); 
     STATE.resultadosTimer = setInterval(loadOrganizador, 5000); 
   }
-  if (view === 'publico') { 
-    showPublicoSpinner();
-    loadPublico(); 
-    STATE.resultadosTimer = setInterval(loadPublico, 4000); 
-  }
+  if (view === 'publico') { loadPublico(); STATE.resultadosTimer = setInterval(loadPublico, 4000); }
 }
 window.addEventListener('hashchange', router);
 
@@ -444,17 +434,6 @@ function showOrgSpinner() {
           <div style="margin-top:10px; color:var(--text-dim); font-size:13px;">Sincronizando tabla del organizador...</div>
         </td>
       </tr>`;
-  }
-}
-
-function showPublicoSpinner() {
-  const el = document.getElementById('publico-leaderboard');
-  if (el) {
-    el.innerHTML = `
-      <div class="loading-state">
-        <div class="spinner"></div>
-        <span>Cargando posiciones en tiempo real...</span>
-      </div>`;
   }
 }
 
@@ -632,7 +611,6 @@ function abrirPanelPuntuacion(participante) {
   }
   actualizarTotalPanel();
 
-  /* ESCRITURA MANUAL OPTIMIZADA EN MÓVILES (Evita salto de cursor al final) */
   STATE.criterios.forEach(c => {
     const range = document.getElementById(`range-${c.ID}`);
     const num = document.getElementById(`num-${c.ID}`);
@@ -648,10 +626,8 @@ function abrirPanelPuntuacion(participante) {
     });
 
     num.addEventListener('input', () => {
-      let v = Number(num.value);
-      if (isNaN(v)) v = 0;
+      let v = Number(num.value) || 0;
       if (v > pesoMax) v = pesoMax;
-      
       range.value = v;
       document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
       actualizarTotalPanel();
@@ -660,8 +636,6 @@ function abrirPanelPuntuacion(participante) {
     num.addEventListener('blur', () => {
       let v = Math.min(pesoMax, Math.max(0, Number(num.value) || 0));
       num.value = v.toFixed(2);
-      document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
-      actualizarTotalPanel();
     });
   });
 
@@ -670,6 +644,7 @@ function abrirPanelPuntuacion(participante) {
     document.getElementById('participantes-list').classList.remove('hidden');
   };
   
+  /* ICONO DE ESPERA AL GUARDAR PUNTAJES EN PANEL DE JURADO */
   document.getElementById('btn-guardar').onclick = async () => {
     const btn = document.getElementById('btn-guardar');
     const status = document.getElementById('save-status');
@@ -696,6 +671,7 @@ function abrirPanelPuntuacion(participante) {
   };
 }
 
+/* Carga del Organizador y Desglose de Votos por Juez */
 let ordenDetallesAbiertos = {};
 
 function obtenerVotosJueces(r) {
@@ -705,26 +681,23 @@ function obtenerVotosJueces(r) {
   if (r.desgloseJueces && Array.isArray(r.desgloseJueces) && r.desgloseJueces.length > 0) {
     return r.desgloseJueces;
   }
+  // Mapeo dinámico si la estructura original envía los votos dentro del arreglo de criterios
   if (r.detalle && Array.isArray(r.detalle)) {
     const mapasJueces = {};
-    let hayVotos = false;
     r.detalle.forEach(d => {
-      const lista = d.votos || d.jueces || d.desglose;
-      if (lista && Array.isArray(lista)) {
-        lista.forEach(v => {
-          hayVotos = true;
-          const jNombre = v.juezNombre || v.juez || v.nombreJuez || ('Juez ' + (v.juezId || ''));
+      if (d.votos && Array.isArray(d.votos)) {
+        d.votos.forEach(v => {
+          const jNombre = v.juezNombre || v.juez || 'Jurado';
           if (!mapasJueces[jNombre]) mapasJueces[jNombre] = [];
           mapasJueces[jNombre].push({ criterio: d.criterioNombre || 'Criterio', puntaje: v.puntaje ?? v.nota ?? 0 });
         });
       }
     });
-    if (hayVotos) {
-      return Object.keys(mapasJueces).map(jNombre => ({
-        juezNombre: jNombre,
-        notas: mapasJueces[jNombre]
-      }));
-    }
+    const resultadoAdaptado = Object.keys(mapasJueces).map(jNombre => ({
+      juezNombre: jNombre,
+      notas: mapasJueces[jNombre]
+    }));
+    if (resultadoAdaptado.length > 0) return resultadoAdaptado;
   }
   return null;
 }
