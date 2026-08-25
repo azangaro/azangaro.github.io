@@ -420,9 +420,9 @@ window.addEventListener('hashchange', router);
 async function loadInit() {
   const data = await apiGet('init');
   if (!data.ok) throw new Error(data.error || 'Error de conexión');
-  STATE.jueces = data.jueces;
-  STATE.participantes = data.participantes.sort((a, b) => (a.Orden || 0) - (b.Orden || 0));
-  STATE.criterios = data.criterios;
+  STATE.jueces = data.jueces || [];
+  STATE.participantes = (data.participantes || []).sort((a, b) => (a.Orden || a.orden || 0) - (b.Orden || b.orden || 0));
+  STATE.criterios = data.criterios || [];
   return data;
 }
 
@@ -461,7 +461,7 @@ async function initJueces() {
   document.getElementById('login-fields').classList.remove('hidden');
 
   const sel = document.getElementById('select-juez');
-  sel.innerHTML = STATE.jueces.map(j => `<option value="${j.ID}">${j.Nombre}</option>`).join('');
+  sel.innerHTML = STATE.jueces.map(j => `<option value="${j.ID || j.id}">${j.Nombre || j.nombre}</option>`).join('');
 
   const saved = localStorage.getItem('danza_juez');
   if (saved) {
@@ -490,9 +490,10 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     btn.textContent = 'Ingresar al Panel';
     if (!res.ok) { showLoginError(res.error); return; }
     
-    STATE.juezActual = { id: juezId, nombre: res.nombre };
+    const nombreJuez = res.Nombre || res.nombre || 'Jurado';
+    STATE.juezActual = { id: juezId, nombre: nombreJuez };
     STATE.pin = pinBuffer;
-    localStorage.setItem('danza_juez', JSON.stringify({ juezId, pin: pinBuffer, nombre: res.nombre }));
+    localStorage.setItem('danza_juez', JSON.stringify({ juezId, pin: pinBuffer, nombre: nombreJuez }));
     await entrarPanelJuez();
   } catch(e) {
     btn.disabled = false;
@@ -518,14 +519,20 @@ async function entrarPanelJuez() {
   
   const mp = await apiGet('misPuntajes', { juezId: STATE.juezActual.id });
   STATE.misPuntajes = {};
-  (mp.puntajes || []).forEach(p => { STATE.misPuntajes[p.ParticipanteID + '|' + p.CriterioID] = p.Puntaje; });
+  (mp.puntajes || []).forEach(p => { 
+    const pId = p.ParticipanteID || p.participanteId;
+    const cId = p.CriterioID || p.criterioId;
+    const punt = p.Puntaje ?? p.puntaje ?? 0;
+    STATE.misPuntajes[pId + '|' + cId] = punt; 
+  });
   renderParticipantesJuez();
 }
 
 function calcularTotalParticipante(participanteId) {
   let total = 0, count = 0;
   STATE.criterios.forEach(c => {
-    const key = participanteId + '|' + c.ID;
+    const cId = c.ID || c.id;
+    const key = participanteId + '|' + cId;
     if (key in STATE.misPuntajes) { total += Number(STATE.misPuntajes[key]); count++; }
   });
   return count === STATE.criterios.length ? total : null;
@@ -537,20 +544,24 @@ function renderParticipantesJuez() {
   let lastCat = null;
   
   STATE.participantes.forEach(p => {
-    if (p.Categoria !== lastCat) {
-      lastCat = p.Categoria;
+    const pId = p.ID || p.id;
+    const pNombre = p.Nombre || p.nombre;
+    const pCat = p.Categoria || p.categoria || 'Sin Categoría';
+
+    if (pCat !== lastCat) {
+      lastCat = pCat;
       const lbl = document.createElement('div');
       lbl.className = 'categoria-label';
-      lbl.textContent = p.Categoria;
+      lbl.textContent = pCat;
       wrap.appendChild(lbl);
     }
-    const total = calcularTotalParticipante(p.ID);
+    const total = calcularTotalParticipante(pId);
     const scored = total !== null;
     const row = document.createElement('div');
     row.className = 'participante-row' + (scored ? ' done' : '');
     row.innerHTML = `
       <div>
-        <div class="name">${p.Nombre}</div>
+        <div class="name">${pNombre}</div>
         <div class="status">${scored ? `✓ Puntaje: ${total.toFixed(2)} pts` : 'Pendiente'}</div>
       </div>
       <button>${scored ? 'Editar' : 'Calificar'}</button>`;
@@ -563,23 +574,32 @@ function abrirPanelPuntuacion(participante) {
   document.getElementById('participantes-list').classList.add('hidden');
   const wrap = document.getElementById('score-panel-wrap');
   const valores = {};
+  const pId = participante.ID || participante.id;
+  const pNombre = participante.Nombre || participante.nombre;
   
   STATE.criterios.forEach(c => {
-    valores[c.ID] = STATE.misPuntajes[participante.ID + '|' + c.ID] ?? Math.round(Number(c.PesoMax) / 2);
+    const cId = c.ID || c.id;
+    const pesoMax = Number(c.PesoMax || c.pesoMax || 100);
+    valores[cId] = STATE.misPuntajes[pId + '|' + cId] ?? Math.round(pesoMax / 2);
   });
 
   wrap.innerHTML = `
     <div class="score-panel">
       <button class="back-link" id="btn-volver" style="margin-bottom:16px;">&larr; Volver</button>
-      <h3 style="margin-bottom: 20px;">${participante.Nombre}</h3>
-      ${STATE.criterios.map(c => `
+      <h3 style="margin-bottom: 20px;">${pNombre}</h3>
+      ${STATE.criterios.map(c => {
+        const cId = c.ID || c.id;
+        const cNombre = c.Nombre || c.nombre || c.criterioNombre || 'Criterio';
+        const pesoMax = Number(c.PesoMax || c.pesoMax || 100);
+        return `
         <div class="criterio-row">
-          <label><span>${c.Nombre}</span><span id="val-${c.ID}" style="color:var(--accent); font-family:'Space Mono';">${Number(valores[c.ID]).toFixed(2)} / ${c.PesoMax}</span></label>
+          <label><span>${cNombre}</span><span id="val-${cId}" style="color:var(--accent); font-family:'Space Mono';">${Number(valores[cId]).toFixed(2)} / ${pesoMax}</span></label>
           <div class="row-inputs">
-            <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}">
-            <input type="text" inputmode="decimal" class="score-input" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}">
+            <input type="range" min="0" max="${pesoMax}" step="0.5" value="${valores[cId]}" id="range-${cId}">
+            <input type="text" inputmode="decimal" class="score-input" value="${Number(valores[cId]).toFixed(2)}" id="num-${cId}">
           </div>
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
       <div class="panel-total" id="panel-total"></div>
       <button class="primary-btn" id="btn-guardar">Guardar Puntuaciones</button>
       <div id="save-status" style="text-align:center; margin-top:10px; font-size:13px; color:var(--text-dim);"></div>
@@ -588,7 +608,8 @@ function abrirPanelPuntuacion(participante) {
   function actualizarTotalPanel() {
     let total = 0;
     STATE.criterios.forEach(c => { 
-      const rawVal = document.getElementById(`num-${c.ID}`).value.replace(',', '.');
+      const cId = c.ID || c.id;
+      const rawVal = document.getElementById(`num-${cId}`).value.replace(',', '.');
       total += Number(rawVal) || 0; 
     });
     document.getElementById('panel-total').textContent = `PUNTAJE TOTAL: ${total.toFixed(2)} PTS`;
@@ -596,14 +617,15 @@ function abrirPanelPuntuacion(participante) {
   actualizarTotalPanel();
 
   STATE.criterios.forEach(c => {
-    const range = document.getElementById(`range-${c.ID}`);
-    const num = document.getElementById(`num-${c.ID}`);
-    const pesoMax = Number(c.PesoMax);
+    const cId = c.ID || c.id;
+    const range = document.getElementById(`range-${cId}`);
+    const num = document.getElementById(`num-${cId}`);
+    const pesoMax = Number(c.PesoMax || c.pesoMax || 100);
     
     range.addEventListener('input', () => {
       const v = Number(range.value);
       num.value = v.toFixed(2);
-      document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
+      document.getElementById(`val-${cId}`).textContent = `${v.toFixed(2)} / ${pesoMax}`;
       actualizarTotalPanel();
     });
 
@@ -613,7 +635,7 @@ function abrirPanelPuntuacion(participante) {
       if (!isNaN(valNum)) {
         valNum = Math.min(pesoMax, Math.max(0, valNum));
         range.value = valNum;
-        document.getElementById(`val-${c.ID}`).textContent = `${valNum.toFixed(2)} / ${c.PesoMax}`;
+        document.getElementById(`val-${cId}`).textContent = `${valNum.toFixed(2)} / ${pesoMax}`;
       }
       actualizarTotalPanel();
     });
@@ -624,7 +646,7 @@ function abrirPanelPuntuacion(participante) {
       valNum = Math.min(pesoMax, Math.max(0, valNum));
       num.value = valNum.toFixed(2);
       range.value = valNum;
-      document.getElementById(`val-${c.ID}`).textContent = `${valNum.toFixed(2)} / ${c.PesoMax}`;
+      document.getElementById(`val-${cId}`).textContent = `${valNum.toFixed(2)} / ${pesoMax}`;
       actualizarTotalPanel();
     });
   });
@@ -641,11 +663,19 @@ function abrirPanelPuntuacion(participante) {
     status.textContent = 'Enviando calificaciones...';
 
     for (const c of STATE.criterios) {
-      const rawVal = document.getElementById(`num-${c.ID}`).value.replace(',', '.');
+      const cId = c.ID || c.id;
+      const rawVal = document.getElementById(`num-${cId}`).value.replace(',', '.');
       const puntaje = Number(rawVal) || 0;
       try {
-        await apiPost({ action: 'puntuar', juezId: STATE.juezActual.id, pin: STATE.pin, participanteId: participante.ID, criterionId: c.ID, puntaje });
-        STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
+        await apiPost({ 
+          action: 'puntuar', 
+          juezId: STATE.juezActual.id, 
+          pin: STATE.pin, 
+          participanteId: pId, 
+          criterioId: cId, 
+          puntaje 
+        });
+        STATE.misPuntajes[pId + '|' + cId] = puntaje;
       } catch(e) {
         status.textContent = 'Error de comunicación.';
         btn.disabled = false;
@@ -665,21 +695,36 @@ async function loadOrganizador() {
   const data = await apiGet('resultados');
   if (!data.ok) return;
 
+  const listCriterios = data.criterios || STATE.criterios;
   const thead = document.getElementById('org-thead-row');
-  thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` + data.criterios.map(c => `<th>${c.Nombre}</th>`).join('') + `<th>Total</th>`;
+  thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` + 
+    listCriterios.map(c => `<th>${c.Nombre || c.nombre || c.criterioNombre || 'Criterio'}</th>`).join('') + 
+    `<th>Total</th>`;
 
   const tbody = document.getElementById('org-tbody');
-  tbody.innerHTML = data.resultados.map((r, i) => `
+  tbody.innerHTML = (data.resultados || []).map((r, i) => {
+    const pNombre = r.Nombre || r.nombre || 'Sin nombre';
+    const pCat = r.Categoria || r.categoria || '—';
+    const pTotal = typeof r.total === 'number' ? r.total.toFixed(2) : (r.total || '0.00');
+
+    const celdasDetalle = (r.detalle || []).map(d => {
+      const cNom = d.criterioNombre || d.Nombre || d.nombre || d.criterio || 'Criterio';
+      const prom = typeof d.promedio === 'number' ? d.promedio.toFixed(2) : (d.promedio || '0.00');
+      return `<td data-label="${cNom}">${prom}</td>`;
+    }).join('');
+
+    return `
     <tr>
       <td data-label="#">${i + 1}</td>
-      <td data-label="Participante"><strong>${r.nombre}</strong></td>
-      <td data-label="Categoría">${r.categoria || '—'}</td>
-      ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${d.promedio.toFixed(2)}</td>`).join('')}
-      <td data-label="Total"><strong style="color:var(--accent);">${r.total.toFixed(2)}</strong></td>
-    </tr>`).join('');
+      <td data-label="Participante"><strong>${pNombre}</strong></td>
+      <td data-label="Categoría">${pCat}</td>
+      ${celdasDetalle}
+      <td data-label="Total"><strong style="color:var(--accent);">${pTotal}</strong></td>
+    </tr>`;
+  }).join('');
 }
 
-/* Público: Carga con Spinner e Integración de Detalle */
+/* Público: Leaderboard e Integración de Detalle */
 async function loadPublico(isFirstLoad = false) {
   const container = document.getElementById('publico-leaderboard');
   
@@ -693,29 +738,32 @@ async function loadPublico(isFirstLoad = false) {
   const openCards = new Set();
   document.querySelectorAll('.lb-card.active').forEach(c => openCards.add(c.dataset.id));
 
-  container.innerHTML = data.resultados.map((r, i) => {
-    const isOpen = openCards.has(String(r.id));
+  container.innerHTML = (data.resultados || []).map((r, i) => {
+    const rId = r.ID || r.id;
+    const rNombre = r.Nombre || r.nombre || 'Sin Nombre';
+    const rCat = r.Categoria || r.categoria || '';
+    const rTotal = typeof r.total === 'number' ? r.total.toFixed(2) : (r.total || '0.00');
+    const isOpen = openCards.has(String(rId));
 
     return `
-      <div class="lb-card ${i === 0 ? 'rank-1' : ''} ${isOpen ? 'active' : ''}" data-id="${r.id}">
-        <div class="lb-header" onclick="toggleDetalleCard(this, '${r.id}')">
+      <div class="lb-card ${i === 0 ? 'rank-1' : ''} ${isOpen ? 'active' : ''}" data-id="${rId}">
+        <div class="lb-header" onclick="toggleDetalleCard(this, '${rId}')">
           <span class="lb-rank">${i + 1}</span>
           <div style="flex:1;">
-            <div style="font-weight:700;">${r.nombre}</div>
-            <div style="font-size:12px; color:var(--text-dim);">${r.categoria || ''}</div>
+            <div style="font-weight:700;">${rNombre}</div>
+            <div style="font-size:12px; color:var(--text-dim);">${rCat}</div>
           </div>
           <div class="lb-total-btn">
-            ${r.total.toFixed(2)}
+            ${rTotal}
             <span class="chevron">▼</span>
           </div>
         </div>
-        <div class="lb-detail" id="detail-${r.id}">
+        <div class="lb-detail" id="detail-${rId}">
           ${r.votos ? buildDetailHtml(r.votos) : '<div class="loading-state" style="padding:15px;"><div class="spinner spinner-sm"></div> Cargando desglose...</div>'}
         </div>
       </div>`;
   }).join('');
 
-  // Cargar inmediatamente desglose para tarjetas abiertas
   openCards.forEach(id => fetchDetalleParticipante(id));
 }
 
@@ -724,24 +772,30 @@ function buildDetailHtml(votos) {
   
   const juradosMap = {};
   votos.forEach(v => {
-    const jName = v.juezNombre || v.Juez || 'Jurado';
+    const jName = v.juezNombre || v.JuezNombre || v.Juez || v.juezId || 'Jurado';
     if (!juradosMap[jName]) juradosMap[jName] = [];
     juradosMap[jName].push(v);
   });
 
-  return Object.keys(juradosMap).map(juez => `
+  return Object.keys(juradosMap).map(juez => {
+    const totalJuez = juradosMap[juez].reduce((a, b) => a + Number(b.puntaje ?? b.Puntaje ?? 0), 0);
+    const tagsHtml = juradosMap[juez].map(v => {
+      const cNom = v.criterioNombre || v.Nombre || v.nombre || v.criterio || v.Criterio || 'Criterio';
+      const pVal = Number(v.puntaje ?? v.Puntaje ?? 0).toFixed(2);
+      return `<span class="criterio-tag">${cNom}: <span>${pVal}</span></span>`;
+    }).join('');
+
+    return `
     <div class="juez-detail-row">
       <div class="juez-name">
         <span>🎙️ ${juez}</span>
-        <span style="color:var(--accent); font-family:'Space Mono';">${juradosMap[juez].reduce((a, b) => a + Number(b.puntaje || b.Puntaje || 0), 0).toFixed(2)} pts</span>
+        <span style="color:var(--accent); font-family:'Space Mono';">${totalJuez.toFixed(2)} pts</span>
       </div>
       <div class="criterio-tag-list">
-        ${juradosMap[juez].map(v => `
-          <span class="criterio-tag">${v.criterioNombre || v.Criterio}: <span>${Number(v.puntaje || v.Puntaje || 0).toFixed(2)}</span></span>
-        `).join('')}
+        ${tagsHtml}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 async function toggleDetalleCard(headerEl, participanteId) {
@@ -758,8 +812,9 @@ async function fetchDetalleParticipante(participanteId) {
   
   try {
     const res = await apiGet('detalleParticipante', { participanteId });
-    if (res.ok && res.votos) {
-      detailEl.innerHTML = buildDetailHtml(res.votos);
+    const votos = res.votos || (res.participante && res.participante.votos);
+    if (res.ok && votos) {
+      detailEl.innerHTML = buildDetailHtml(votos);
     }
   } catch(e) {
     detailEl.innerHTML = `<div style="color:var(--danger); text-align:center;">Error al obtener notas</div>`;
