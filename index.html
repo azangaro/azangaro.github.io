@@ -616,16 +616,20 @@ function abrirPanelPuntuacion(participante) {
     const num = document.getElementById(`num-${c.ID}`);
     const pesoMax = Number(c.PesoMax);
     
-    num.addEventListener('focus', () => num.select());
+    // Solución 1: Evitar desplazamiento involuntario de la pantalla al enfocar e interactuar en móviles
+    num.addEventListener('focus', (e) => {
+      e.preventDefault();
+      requestAnimationFrame(() => num.select());
+    }, { passive: false });
 
-    range.addEventListener('input', () => {
+    range.addEventListener('input', (e) => {
       let v = Math.min(pesoMax, Math.max(0, Number(range.value) || 0));
       num.value = v.toFixed(2);
       document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
       actualizarTotalPanel();
     });
 
-    num.addEventListener('input', () => {
+    num.addEventListener('input', (e) => {
       let v = Number(num.value) || 0;
       if (v > pesoMax) v = pesoMax;
       range.value = v;
@@ -644,7 +648,6 @@ function abrirPanelPuntuacion(participante) {
     document.getElementById('participantes-list').classList.remove('hidden');
   };
   
-  /* ICONO DE ESPERA AL GUARDAR PUNTAJES EN PANEL DE JURADO */
   document.getElementById('btn-guardar').onclick = async () => {
     const btn = document.getElementById('btn-guardar');
     const status = document.getElementById('save-status');
@@ -772,38 +775,87 @@ function toggleDetalle(id) {
   loadOrganizador();
 }
 
-/* Exportaciones Excel / PDF */
+async function loadPublico() {
+  const data = await apiGet('resultados');
+  if (!data.ok) return;
+  const wrap = document.getElementById('publico-leaderboard');
+  wrap.innerHTML = data.resultados.map((r, i) => `
+    <div class="lb-row ${i === 0 ? 'rank-1' : ''}">
+      <div class="lb-rank">${i + 1}</div>
+      <div style="flex:1;">
+        <div style="font-weight:700; font-size:16px;">${r.nombre || r.Nombre}</div>
+        <div style="font-size:13px; color:var(--text-dim);">${r.categoria || r.Categoria || '—'}</div>
+      </div>
+      <div class="lb-total">${Number(r.total || 0).toFixed(2)} pts</div>
+    </div>
+  `).join('');
+}
+
+/* Solución 2: Exportaciones a Excel y PDF con Desglose General y Detalle por Juez */
 function exportarExcel() {
   if (!STATE.ultimosResultados) return;
   const data = STATE.ultimosResultados;
   
-  const rows = [];
-  data.resultados.forEach((r, i) => {
+  // Hoja 1: Resumen General
+  const resumenRows = data.resultados.map((r, i) => {
     const row = {
       'Puesto': i + 1,
       'Participante': r.nombre || r.Nombre,
       'Categoría': r.categoria || r.Categoria || '—'
     };
-    r.detalle.forEach(d => { row[d.criterioNombre] = d.promedio; });
-    row['Total'] = r.total;
-    rows.push(row);
+    r.detalle.forEach(d => { row[d.criterioNombre] = Number(d.promedio || 0).toFixed(2); });
+    row['Total Promedio'] = Number(r.total || 0).toFixed(2);
+    return row;
   });
 
-  const ws = XLSX.utils.json_to_sheet(rows);
+  // Hoja 2: Detalle por Juez
+  const detalleJuecesRows = [];
+  data.resultados.forEach((r, i) => {
+    const votos = obtenerVotosJueces(r);
+    if (votos && votos.length > 0) {
+      votos.forEach(j => {
+        const row = {
+          'Puesto General': i + 1,
+          'Participante': r.nombre || r.Nombre,
+          'Categoría': r.categoria || r.Categoria || '—',
+          'Jurado': j.juezNombre || j.juez
+        };
+        (j.notas || j.puntajes || []).forEach(n => {
+          row[n.criterio || n.criterioNombre] = n.puntaje;
+        });
+        detalleJuecesRows.push(row);
+      });
+    }
+  });
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Resultados");
-  XLSX.writeFile(wb, "Resultados_Concurso_Danza.xlsx");
+  const wsResumen = XLSX.utils.json_to_sheet(resumenRows);
+  XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen General");
+
+  if (detalleJuecesRows.length > 0) {
+    const wsDetalle = XLSX.utils.json_to_sheet(detalleJuecesRows);
+    XLSX.utils.book_append_sheet(wb, wsDetalle, "Detalle por Juez");
+  }
+
+  XLSX.writeFile(wb, `Resultados_Concurso_Danza_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 function exportarPDF() {
   if (!STATE.ultimosResultados) return;
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: 'landscape' });
 
-  doc.text("Resultados del Concurso de Danza", 14, 15);
+  const data = STATE.ultimosResultados;
+  
+  // Título
+  doc.setFontSize(18);
+  doc.text("Resultados Oficiales - Concurso de Danza", 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Fecha de reporte: ${new Date().toLocaleString()}`, 14, 22);
 
-  const head = [['#', 'Participante', 'Categoría', ...STATE.ultimosResultados.criterios.map(c => c.Nombre), 'Total']];
-  const body = STATE.ultimosResultados.resultados.map((r, i) => [
+  // Tabla 1: Resumen General
+  const headersResumen = [['#', 'Participante', 'Categoría', ...data.criterios.map(c => c.Nombre), 'Total']];
+  const bodyResumen = data.resultados.map((r, i) => [
     i + 1,
     r.nombre || r.Nombre,
     r.categoria || r.Categoria || '—',
@@ -812,32 +864,48 @@ function exportarPDF() {
   ]);
 
   doc.autoTable({
-    head: head,
-    body: body,
-    startY: 20,
+    startY: 28,
+    head: headersResumen,
+    body: bodyResumen,
     theme: 'grid',
-    styles: { fontSize: 9 }
+    headStyles: { fillColor: [99, 102, 241] }
   });
 
-  doc.save("Resultados_Concurso_Danza.pdf");
+  // Tabla 2: Detalle por Juez (Nueva página)
+  const bodyJueces = [];
+  data.resultados.forEach((r, i) => {
+    const votos = obtenerVotosJueces(r);
+    if (votos && votos.length > 0) {
+      votos.forEach(j => {
+        const notasTexto = (j.notas || j.puntajes || []).map(n => `${n.criterio || n.criterioNombre}: ${n.puntaje}`).join(' | ');
+        bodyJueces.push([
+          i + 1,
+          r.nombre || r.Nombre,
+          j.juezNombre || j.juez,
+          notasTexto
+        ]);
+      });
+    }
+  });
+
+  if (bodyJueces.length > 0) {
+    doc.addPage();
+    doc.setFontSize(14);
+    doc.text("Desglose de Calificaciones por Jurado", 14, 15);
+    
+    doc.autoTable({
+      startY: 22,
+      head: [['# Pos', 'Participante', 'Jurado', 'Calificaciones por Criterio']],
+      body: bodyJueces,
+      theme: 'striped',
+      headStyles: { fillColor: [51, 65, 85] }
+    });
+  }
+
+  doc.save(`Resultados_Concurso_Danza_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
-async function loadPublico() {
-  const data = await apiGet('resultados');
-  if (!data.ok) return;
-
-  const el = document.getElementById('publico-leaderboard');
-  el.innerHTML = data.resultados.map((r, i) => `
-    <div class="lb-row ${i === 0 ? 'rank-1' : ''}">
-      <span class="lb-rank">${i + 1}</span>
-      <div style="flex:1;">
-        <div style="font-weight:700;">${r.nombre || r.Nombre}</div>
-        <div style="font-size:12px; color:var(--text-dim);">${r.categoria || r.Categoria || ''}</div>
-      </div>
-      <span class="lb-total">${Number(r.total || 0).toFixed(2)}</span>
-    </div>`).join('');
-}
-
+// Inicialización
 router();
 </script>
 </body>
