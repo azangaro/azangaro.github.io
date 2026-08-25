@@ -675,30 +675,42 @@ function abrirPanelPuntuacion(participante) {
 let ordenDetallesAbiertos = {};
 
 function obtenerVotosJueces(r) {
+  // 1. Lectura directa si existe la clave del backend
   if (r.votosJueces && Array.isArray(r.votosJueces) && r.votosJueces.length > 0) {
     return r.votosJueces;
   }
   if (r.desgloseJueces && Array.isArray(r.desgloseJueces) && r.desgloseJueces.length > 0) {
     return r.desgloseJueces;
   }
-  // Mapeo dinámico si la estructura original envía los votos dentro del arreglo de criterios
+
+  // 2. Extraer si los votos vienen anidados dentro de "detalle" o "criterios"
   if (r.detalle && Array.isArray(r.detalle)) {
     const mapasJueces = {};
+    let hayVotos = false;
+
     r.detalle.forEach(d => {
-      if (d.votos && Array.isArray(d.votos)) {
-        d.votos.forEach(v => {
-          const jNombre = v.juezNombre || v.juez || 'Jurado';
+      const listaVotos = d.votos || d.jueces || d.desglose;
+      if (listaVotos && Array.isArray(listaVotos)) {
+        listaVotos.forEach(v => {
+          hayVotos = true;
+          const jNombre = v.juezNombre || v.juez || v.nombreJuez || ('Juez ' + (v.juezId || ''));
           if (!mapasJueces[jNombre]) mapasJueces[jNombre] = [];
-          mapasJueces[jNombre].push({ criterio: d.criterioNombre || 'Criterio', puntaje: v.puntaje ?? v.nota ?? 0 });
+          mapasJueces[jNombre].push({ 
+            criterio: d.criterioNombre || d.nombre || 'Criterio', 
+            puntaje: v.puntaje ?? v.nota ?? v.valor ?? 0 
+          });
         });
       }
     });
-    const resultadoAdaptado = Object.keys(mapasJueces).map(jNombre => ({
-      juezNombre: jNombre,
-      notas: mapasJueces[jNombre]
-    }));
-    if (resultadoAdaptado.length > 0) return resultadoAdaptado;
+
+    if (hayVotos) {
+      return Object.keys(mapasJueces).map(jNombre => ({
+        juezNombre: jNombre,
+        notas: mapasJueces[jNombre]
+      }));
+    }
   }
+
   return null;
 }
 
