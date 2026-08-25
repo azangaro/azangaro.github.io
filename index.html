@@ -154,7 +154,9 @@
   .primary-btn {
     width: 100%; height: 54px; background: var(--accent); color: #FFF; font-weight: 700;
     border-radius: var(--radius-sm); font-size: 16px; box-shadow: 0 8px 20px var(--accent-glow);
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   }
+  .primary-btn:disabled { opacity: 0.75; cursor: not-allowed; }
   
   .btn-export {
     background: var(--surface-alt); color: var(--text); border: 1px solid var(--border);
@@ -250,10 +252,11 @@
   .lb-total { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 18px; color: var(--accent); }
 
   .spinner {
-    width: 24px; height: 24px; border-radius: 50%;
-    border: 3px solid var(--border); border-top-color: var(--accent);
-    animation: spin 0.8s linear infinite;
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--border); border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite; display: inline-block; flex-shrink: 0;
   }
+  .spinner-sm { width: 16px; height: 16px; border-width: 2px; border-top-color: #FFF; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px; color: var(--text-dim); }
 </style>
@@ -346,7 +349,14 @@
         <thead>
           <tr id="org-thead-row"></tr>
         </thead>
-        <tbody id="org-tbody"></tbody>
+        <tbody id="org-tbody">
+          <tr>
+            <td colspan="100%" style="text-align:center; padding: 40px;">
+              <div class="spinner"></div>
+              <div style="margin-top:10px; color:var(--text-dim); font-size:13px;">Cargando puntuaciones...</div>
+            </td>
+          </tr>
+        </tbody>
       </table>
     </div>
   </div>
@@ -405,10 +415,27 @@ function router() {
   
   clearInterval(STATE.resultadosTimer);
   if (view === 'jueces') initJueces();
-  if (view === 'organizador') { loadOrganizador(); STATE.resultadosTimer = setInterval(loadOrganizador, 5000); }
+  if (view === 'organizador') { 
+    showOrgSpinner();
+    loadOrganizador(); 
+    STATE.resultadosTimer = setInterval(loadOrganizador, 5000); 
+  }
   if (view === 'publico') { loadPublico(); STATE.resultadosTimer = setInterval(loadPublico, 4000); }
 }
 window.addEventListener('hashchange', router);
+
+function showOrgSpinner() {
+  const tbody = document.getElementById('org-tbody');
+  if (tbody && (!STATE.ultimosResultados || !STATE.ultimosResultados.resultados.length)) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="100%" style="text-align:center; padding:40px;">
+          <div class="spinner"></div>
+          <div style="margin-top:10px; color:var(--text-dim); font-size:13px;">Sincronizando tabla del organizador...</div>
+        </td>
+      </tr>`;
+  }
+}
 
 async function loadInit() {
   const data = await apiGet('init');
@@ -474,7 +501,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
   const btn = document.getElementById('btn-login');
   const juezId = document.getElementById('select-juez').value;
   btn.disabled = true;
-  btn.textContent = 'Verificando...';
+  btn.innerHTML = `<span class="spinner spinner-sm"></span> Verificando...`;
   
   try {
     const res = await apiPost({ action: 'login', juezId, pin: pinBuffer });
@@ -560,7 +587,6 @@ function abrirPanelPuntuacion(participante) {
     valores[c.ID] = STATE.misPuntajes[participante.ID + '|' + c.ID] ?? Math.round(Number(c.PesoMax) / 2);
   });
 
-  /* Corrección Móvil: inputmode decimal + pattern para teclado numérico cómodo */
   wrap.innerHTML = `
     <div class="score-panel">
       <button class="back-link" id="btn-volver" style="margin-bottom:16px;">&larr; Volver</button>
@@ -590,7 +616,6 @@ function abrirPanelPuntuacion(participante) {
     const num = document.getElementById(`num-${c.ID}`);
     const pesoMax = Number(c.PesoMax);
     
-    // Al hacer clic/foco en móviles, seleccionar todo el texto para reescribir fácilmente
     num.addEventListener('focus', () => num.select());
 
     range.addEventListener('input', () => {
@@ -600,7 +625,6 @@ function abrirPanelPuntuacion(participante) {
       actualizarTotalPanel();
     });
 
-    // Mantenemos la escritura fluida sin formatear agresivamente mientras se edita
     num.addEventListener('input', () => {
       let v = Number(num.value) || 0;
       if (v > pesoMax) v = pesoMax;
@@ -620,11 +644,13 @@ function abrirPanelPuntuacion(participante) {
     document.getElementById('participantes-list').classList.remove('hidden');
   };
   
+  /* ICONO DE ESPERA AL GUARDAR PUNTAJES EN PANEL DE JURADO */
   document.getElementById('btn-guardar').onclick = async () => {
     const btn = document.getElementById('btn-guardar');
     const status = document.getElementById('save-status');
     btn.disabled = true;
-    status.textContent = 'Enviando calificaciones...';
+    btn.innerHTML = `<span class="spinner spinner-sm"></span> Guardando calificaciones...`;
+    status.textContent = 'Enviando puntuaciones...';
 
     for (const c of STATE.criterios) {
       const puntaje = Number(document.getElementById(`num-${c.ID}`).value);
@@ -632,8 +658,9 @@ function abrirPanelPuntuacion(participante) {
         await apiPost({ action: 'puntuar', juezId: STATE.juezActual.id, pin: STATE.pin, participanteId: participante.ID, criterioId: c.ID, puntaje });
         STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
       } catch(e) {
-        status.textContent = 'Error de comunicación.';
+        status.textContent = 'Error de comunicación al guardar.';
         btn.disabled = false;
+        btn.textContent = 'Guardar Puntuaciones';
         return;
       }
     }
@@ -644,8 +671,36 @@ function abrirPanelPuntuacion(participante) {
   };
 }
 
-/* Carga del Organizador con Detalle por Juez */
+/* Carga del Organizador y Desglose de Votos por Juez */
 let ordenDetallesAbiertos = {};
+
+function obtenerVotosJueces(r) {
+  if (r.votosJueces && Array.isArray(r.votosJueces) && r.votosJueces.length > 0) {
+    return r.votosJueces;
+  }
+  if (r.desgloseJueces && Array.isArray(r.desgloseJueces) && r.desgloseJueces.length > 0) {
+    return r.desgloseJueces;
+  }
+  // Mapeo dinámico si la estructura original envía los votos dentro del arreglo de criterios
+  if (r.detalle && Array.isArray(r.detalle)) {
+    const mapasJueces = {};
+    r.detalle.forEach(d => {
+      if (d.votos && Array.isArray(d.votos)) {
+        d.votos.forEach(v => {
+          const jNombre = v.juezNombre || v.juez || 'Jurado';
+          if (!mapasJueces[jNombre]) mapasJueces[jNombre] = [];
+          mapasJueces[jNombre].push({ criterio: d.criterioNombre || 'Criterio', puntaje: v.puntaje ?? v.nota ?? 0 });
+        });
+      }
+    });
+    const resultadoAdaptado = Object.keys(mapasJueces).map(jNombre => ({
+      juezNombre: jNombre,
+      notas: mapasJueces[jNombre]
+    }));
+    if (resultadoAdaptado.length > 0) return resultadoAdaptado;
+  }
+  return null;
+}
 
 async function loadOrganizador() {
   if (!STATE.criterios.length) await loadInit();
@@ -661,16 +716,19 @@ async function loadOrganizador() {
   let html = '';
 
   data.resultados.forEach((r, i) => {
-    const isOpen = ordenDetallesAbiertos[r.id];
+    const isOpen = ordenDetallesAbiertos[r.id || r.ID || i];
+    const itemKey = r.id || r.ID || i;
+    const votosLista = obtenerVotosJueces(r);
+
     html += `
       <tr>
         <td data-label="#">${i + 1}</td>
-        <td data-label="Participante"><strong>${r.nombre}</strong></td>
-        <td data-label="Categoría">${r.categoria || '—'}</td>
-        ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${d.promedio.toFixed(2)}</td>`).join('')}
-        <td data-label="Total"><strong style="color:var(--accent);">${r.total.toFixed(2)}</strong></td>
+        <td data-label="Participante"><strong>${r.nombre || r.Nombre}</strong></td>
+        <td data-label="Categoría">${r.categoria || r.Categoria || '—'}</td>
+        ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${Number(d.promedio || 0).toFixed(2)}</td>`).join('')}
+        <td data-label="Total"><strong style="color:var(--accent);">${Number(r.total || 0).toFixed(2)}</strong></td>
         <td data-label="Detalle">
-          <button class="btn-export" style="padding:4px 8px; font-size:11px;" onclick="toggleDetalle('${r.id}')">
+          <button class="btn-export" style="padding:4px 8px; font-size:11px;" onclick="toggleDetalle('${itemKey}')">
             ${isOpen ? 'Ocultar ▲' : 'Ver Jueces ▼'}
           </button>
         </td>
@@ -681,11 +739,11 @@ async function loadOrganizador() {
         <tr class="juez-detail-row">
           <td colspan="${5 + data.criterios.length}" style="padding:12px 16px;">
             <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px; font-weight:700;">DESGLOSE POR JUEZ:</div>
-            ${r.votosJueces && r.votosJueces.length ? r.votosJueces.map(j => `
-              <div style="margin-bottom:4px;">
-                <span class="juez-badge">${j.juezNombre}</span>
+            ${votosLista ? votosLista.map(j => `
+              <div style="margin-bottom:6px;">
+                <span class="juez-badge">${j.juezNombre || j.juez}</span>
                 <span style="font-size:12px; color:var(--text-dim);">
-                  ${j.notas.map(n => `${n.criterio}: <strong style="color:var(--text);">${n.puntaje}</strong>`).join(' | ')}
+                  ${(j.notas || j.puntajes || []).map(n => `${n.criterio || n.criterioNombre}: <strong style="color:var(--text);">${n.puntaje}</strong>`).join(' | ')}
                 </span>
               </div>
             `).join('') : '<span style="font-size:12px; color:var(--text-dim);">Sin votos desglosados disponibles</span>'}
@@ -711,8 +769,8 @@ function exportarExcel() {
   data.resultados.forEach((r, i) => {
     const row = {
       'Puesto': i + 1,
-      'Participante': r.nombre,
-      'Categoría': r.categoria || '—'
+      'Participante': r.nombre || r.Nombre,
+      'Categoría': r.categoria || r.Categoria || '—'
     };
     r.detalle.forEach(d => { row[d.criterioNombre] = d.promedio; });
     row['Total'] = r.total;
@@ -735,10 +793,10 @@ function exportarPDF() {
   const head = [['#', 'Participante', 'Categoría', ...STATE.ultimosResultados.criterios.map(c => c.Nombre), 'Total']];
   const body = STATE.ultimosResultados.resultados.map((r, i) => [
     i + 1,
-    r.nombre,
-    r.categoria || '—',
-    ...r.detalle.map(d => d.promedio.toFixed(2)),
-    r.total.toFixed(2)
+    r.nombre || r.Nombre,
+    r.categoria || r.Categoria || '—',
+    ...r.detalle.map(d => Number(d.promedio || 0).toFixed(2)),
+    Number(r.total || 0).toFixed(2)
   ]);
 
   doc.autoTable({
@@ -761,10 +819,10 @@ async function loadPublico() {
     <div class="lb-row ${i === 0 ? 'rank-1' : ''}">
       <span class="lb-rank">${i + 1}</span>
       <div style="flex:1;">
-        <div style="font-weight:700;">${r.nombre}</div>
-        <div style="font-size:12px; color:var(--text-dim);">${r.categoria || ''}</div>
+        <div style="font-weight:700;">${r.nombre || r.Nombre}</div>
+        <div style="font-size:12px; color:var(--text-dim);">${r.categoria || r.Categoria || ''}</div>
       </div>
-      <span class="lb-total">${r.total.toFixed(2)}</span>
+      <span class="lb-total">${Number(r.total || 0).toFixed(2)}</span>
     </div>`).join('');
 }
 
