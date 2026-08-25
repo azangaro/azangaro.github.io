@@ -255,14 +255,17 @@
   .criterio-tag { background: var(--surface-alt); padding: 4px 8px; border-radius: 6px; color: var(--text-dim); font-size: 12px; }
   .criterio-tag span { color: var(--text); font-weight: 700; font-family: 'Space Mono', monospace; }
 
-  /* Indicador de carga */
+  /* Indicadores y Cargas */
   .spinner {
     width: 24px; height: 24px; border-radius: 50%;
     border: 3px solid var(--border); border-top-color: var(--accent);
-    animation: spin 0.8s linear infinite;
+    animation: spin 0.8s linear infinite; display: inline-block;
+  }
+  .spinner-sm {
+    width: 14px; height: 14px; border-width: 2px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px; color: var(--text-dim); }
+  .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 40px; color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -361,7 +364,11 @@
     <h1 style="text-align:center; margin: 20px 0;">Tabla de Posiciones</h1>
     <p style="text-align:center; color: var(--text-dim); font-size:13px; margin-bottom:20px;">Toca un puntaje para ver el detalle de los jurados</p>
     <div id="publico-avisos"></div>
-    <div id="publico-leaderboard"></div>
+    <div id="publico-leaderboard">
+      <div class="loading-state">
+        <div class="spinner"></div> Carga de posiciones...
+      </div>
+    </div>
   </div>
 </div>
 
@@ -406,7 +413,7 @@ function router() {
   clearInterval(STATE.resultadosTimer);
   if (view === 'jueces') initJueces();
   if (view === 'organizador') { loadOrganizador(); STATE.resultadosTimer = setInterval(loadOrganizador, 5000); }
-  if (view === 'publico') { loadPublico(); STATE.resultadosTimer = setInterval(loadPublico, 4000); }
+  if (view === 'publico') { loadPublico(true); STATE.resultadosTimer = setInterval(() => loadPublico(false), 4000); }
 }
 window.addEventListener('hashchange', router);
 
@@ -552,7 +559,6 @@ function renderParticipantesJuez() {
   });
 }
 
-/* Panel de Puntuación con Corrección de Input Decimal Móvil */
 function abrirPanelPuntuacion(participante) {
   document.getElementById('participantes-list').classList.add('hidden');
   const wrap = document.getElementById('score-panel-wrap');
@@ -571,7 +577,6 @@ function abrirPanelPuntuacion(participante) {
           <label><span>${c.Nombre}</span><span id="val-${c.ID}" style="color:var(--accent); font-family:'Space Mono';">${Number(valores[c.ID]).toFixed(2)} / ${c.PesoMax}</span></label>
           <div class="row-inputs">
             <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}">
-            <!-- Input optimizado para decimales en Celulares -->
             <input type="text" inputmode="decimal" class="score-input" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}">
           </div>
         </div>`).join('')}
@@ -595,7 +600,6 @@ function abrirPanelPuntuacion(participante) {
     const num = document.getElementById(`num-${c.ID}`);
     const pesoMax = Number(c.PesoMax);
     
-    // Al deslizar el rango táctil
     range.addEventListener('input', () => {
       const v = Number(range.value);
       num.value = v.toFixed(2);
@@ -603,7 +607,6 @@ function abrirPanelPuntuacion(participante) {
       actualizarTotalPanel();
     });
 
-    // Al escribir en el cel: No forzamos el formato en vivo para evitar saltos del cursor
     num.addEventListener('input', () => {
       let rawVal = num.value.replace(',', '.');
       let valNum = parseFloat(rawVal);
@@ -615,7 +618,6 @@ function abrirPanelPuntuacion(participante) {
       actualizarTotalPanel();
     });
 
-    // Formateamos correctamente al soltar el foco del teclado móvil (blur)
     num.addEventListener('blur', () => {
       let rawVal = num.value.replace(',', '.');
       let valNum = parseFloat(rawVal) || 0;
@@ -642,7 +644,7 @@ function abrirPanelPuntuacion(participante) {
       const rawVal = document.getElementById(`num-${c.ID}`).value.replace(',', '.');
       const puntaje = Number(rawVal) || 0;
       try {
-        await apiPost({ action: 'puntuar', juezId: STATE.juezActual.id, pin: STATE.pin, participanteId: participante.ID, criterioId: c.ID, puntaje });
+        await apiPost({ action: 'puntuar', juezId: STATE.juezActual.id, pin: STATE.pin, participanteId: participante.ID, criterionId: c.ID, puntaje });
         STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
       } catch(e) {
         status.textContent = 'Error de comunicación.';
@@ -657,7 +659,7 @@ function abrirPanelPuntuacion(participante) {
   };
 }
 
-/* Carga del Organizador */
+/* Organizador */
 async function loadOrganizador() {
   if (!STATE.criterios.length) await loadInit();
   const data = await apiGet('resultados');
@@ -677,47 +679,26 @@ async function loadOrganizador() {
     </tr>`).join('');
 }
 
-/* Carga del Público con Acordeón de Detalle por Jurado */
-async function loadPublico() {
+/* Público: Carga con Spinner e Integración de Detalle */
+async function loadPublico(isFirstLoad = false) {
+  const container = document.getElementById('publico-leaderboard');
+  
+  if (isFirstLoad && !container.querySelector('.lb-card')) {
+    container.innerHTML = `<div class="loading-state"><div class="spinner"></div> Actualizando puntuaciones...</div>`;
+  }
+
   const data = await apiGet('resultados');
   if (!data.ok) return;
 
-  // Preservar tarjetas abiertas al recargar datos en vivo
   const openCards = new Set();
   document.querySelectorAll('.lb-card.active').forEach(c => openCards.add(c.dataset.id));
 
-  const el = document.getElementById('publico-leaderboard');
-  el.innerHTML = data.resultados.map((r, i) => {
-    const isOpen = openCards.has(r.id);
-    
-    // Agrupar desglose por jurado
-    const juradosMap = {};
-    if (r.votos) {
-      r.votos.forEach(v => {
-        if (!juradosMap[v.juezNombre]) juradosMap[v.juezNombre] = [];
-        juradosMap[v.juezNombre].push(v);
-      });
-    }
-
-    const detailHtml = Object.keys(juradosMap).length > 0 
-      ? Object.keys(juradosMap).map(juez => `
-          <div class="juez-detail-row">
-            <div class="juez-name">
-              <span>🎙️ ${juez}</span>
-              <span style="color:var(--accent); font-family:'Space Mono';">${juradosMap[juez].reduce((a, b) => a + Number(b.puntaje), 0).toFixed(2)} pts</span>
-            </div>
-            <div class="criterio-tag-list">
-              ${juradosMap[juez].map(v => `
-                <span class="criterio-tag">${v.criterioNombre}: <span>${Number(v.puntaje).toFixed(2)}</span></span>
-              `).join('')}
-            </div>
-          </div>
-        `).join('')
-      : `<div style="color:var(--text-dim); text-align:center;">Sin detalles desglosados</div>`;
+  container.innerHTML = data.resultados.map((r, i) => {
+    const isOpen = openCards.has(String(r.id));
 
     return `
       <div class="lb-card ${i === 0 ? 'rank-1' : ''} ${isOpen ? 'active' : ''}" data-id="${r.id}">
-        <div class="lb-header" onclick="this.parentElement.classList.toggle('active')">
+        <div class="lb-header" onclick="toggleDetalleCard(this, '${r.id}')">
           <span class="lb-rank">${i + 1}</span>
           <div style="flex:1;">
             <div style="font-weight:700;">${r.nombre}</div>
@@ -728,11 +709,61 @@ async function loadPublico() {
             <span class="chevron">▼</span>
           </div>
         </div>
-        <div class="lb-detail">
-          ${detailHtml}
+        <div class="lb-detail" id="detail-${r.id}">
+          ${r.votos ? buildDetailHtml(r.votos) : '<div class="loading-state" style="padding:15px;"><div class="spinner spinner-sm"></div> Cargando desglose...</div>'}
         </div>
       </div>`;
   }).join('');
+
+  // Cargar inmediatamente desglose para tarjetas abiertas
+  openCards.forEach(id => fetchDetalleParticipante(id));
+}
+
+function buildDetailHtml(votos) {
+  if (!votos || !votos.length) return `<div style="color:var(--text-dim); text-align:center; padding:8px;">Sin notas registradas por jurados aún</div>`;
+  
+  const juradosMap = {};
+  votos.forEach(v => {
+    const jName = v.juezNombre || v.Juez || 'Jurado';
+    if (!juradosMap[jName]) juradosMap[jName] = [];
+    juradosMap[jName].push(v);
+  });
+
+  return Object.keys(juradosMap).map(juez => `
+    <div class="juez-detail-row">
+      <div class="juez-name">
+        <span>🎙️ ${juez}</span>
+        <span style="color:var(--accent); font-family:'Space Mono';">${juradosMap[juez].reduce((a, b) => a + Number(b.puntaje || b.Puntaje || 0), 0).toFixed(2)} pts</span>
+      </div>
+      <div class="criterio-tag-list">
+        ${juradosMap[juez].map(v => `
+          <span class="criterio-tag">${v.criterioNombre || v.Criterio}: <span>${Number(v.puntaje || v.Puntaje || 0).toFixed(2)}</span></span>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+async function toggleDetalleCard(headerEl, participanteId) {
+  const card = headerEl.parentElement;
+  card.classList.toggle('active');
+  if (card.classList.contains('active')) {
+    await fetchDetalleParticipante(participanteId);
+  }
+}
+
+async function fetchDetalleParticipante(participanteId) {
+  const detailEl = document.getElementById(`detail-${participanteId}`);
+  if (!detailEl) return;
+  
+  try {
+    const res = await apiGet('detalleParticipante', { participanteId });
+    if (res.ok && res.votos) {
+      detailEl.innerHTML = buildDetailHtml(res.votos);
+    }
+  } catch(e) {
+    detailEl.innerHTML = `<div style="color:var(--danger); text-align:center;">Error al obtener notas</div>`;
+  }
 }
 
 router();
