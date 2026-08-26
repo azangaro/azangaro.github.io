@@ -71,7 +71,7 @@
   button:active { transform: scale(0.96); }
 
   .container { max-width: 500px; margin: 0 auto; padding: 0 16px 48px; }
-  .container-wide { max-width: 1000px; margin: 0 auto; padding: 0 16px 48px; }
+  .container-wide { max-width: 1240px; margin: 0 auto; padding: 0 16px 48px; }
 
   .topbar {
     display: flex; align-items: center; justify-content: space-between;
@@ -227,29 +227,80 @@
   .org-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .org-actions .btn-export { flex: 0 0 auto; }
 
-  /* Tablas Adaptables en Organizador */
-  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); }
-  .table-wrap { border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; background: var(--surface); min-width: 640px; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  thead th {
-    text-align: left; padding: 14px 16px; background: var(--surface-alt); color: var(--text-dim);
-    font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
-    white-space: nowrap; position: sticky; top: 0; z-index: 1;
+  /* Tarjetas del Organizador — mismo diseño en PC y en móvil, cambia solo el número de columnas */
+  .table-wrap { background: transparent; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+  thead { display: none; }
+
+  tbody#org-tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+    align-items: start;
   }
-  tbody td { padding: 14px 16px; border-top: 1px solid var(--border); white-space: nowrap; }
-  
-  .juez-detail-row { background: rgba(15, 23, 42, 0.4); }
+  /* Mientras carga (una sola fila con colspan), que ocupe todo el ancho y se vea centrada */
+  tbody#org-tbody > tr:has(td[colspan]) {
+    grid-column: 1 / -1; display: block; background: transparent; border: none;
+    box-shadow: none; padding: 0;
+  }
+  tbody#org-tbody > tr:has(td[colspan]) td {
+    padding: 0; display: block;
+  }
+  tbody#org-tbody > tr:has(td[colspan]) td::before { display: none; }
+
+  .table-wrap tr {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; align-content: start;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; box-shadow: var(--shadow); transition: var(--transition);
+  }
+  .table-wrap tr:not(.juez-detail-row):hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  .table-wrap tr.juez-detail-row {
+    grid-column: 1 / -1; display: block; background: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; margin-top: -6px; box-shadow: none;
+  }
+
+  .table-wrap td {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+    padding: 8px 0; border: none; white-space: normal;
+  }
+  .table-wrap td::before {
+    content: attr(data-label); color: var(--text-dim); font-size: 11px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+
+  /* Rango: insignia circular flotando en la esquina de la tarjeta */
+  .table-wrap tr { position: relative; padding-top: 42px; }
+  .table-wrap td[data-label="#"] {
+    position: absolute; top: 14px; left: 14px; padding: 0;
+    width: 30px; height: 30px; border-radius: 50%; background: var(--surface-alt);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Space Mono', monospace; font-weight: 700; font-size: 13px; color: var(--text-dim);
+  }
+  .table-wrap td[data-label="#"]::before { display: none; }
+
+  /* Nombre y categoría ocupan el ancho completo, arriba de la tarjeta */
+  .table-wrap td[data-label="Participante"] {
+    grid-column: 1 / -1; padding-left: 40px; padding-bottom: 10px; margin-bottom: 6px;
+    border-bottom: 1px solid var(--border); margin-top: -30px;
+  }
+  .table-wrap td[data-label="Participante"] strong { font-size: 16px; }
+  .table-wrap td[data-label="Categoría"] { grid-column: 1 / -1; padding-top: 0; padding-bottom: 10px; margin-bottom: 6px; }
+  .table-wrap td[data-label="Categoría"]::before { display: none; }
+
+  /* Total resaltado, a ancho completo */
+  .table-wrap td[data-label="Total"] {
+    grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between;
+    background: var(--live-soft); border-radius: var(--radius-sm); padding: 10px 12px; margin: 6px 0;
+  }
+  .table-wrap td[data-label="Total"] strong { font-size: 17px; }
+
+  /* Botón de detalle a ancho completo */
+  .table-wrap td[data-label="Detalle"] { grid-column: 1 / -1; padding-top: 4px; }
+  .table-wrap td[data-label="Detalle"] button { width: 100%; justify-content: center; padding: 10px 14px; }
+
   .juez-badge { display: inline-block; padding: 3px 8px; background: var(--surface-alt); border-radius: 6px; font-size: 12px; font-weight: 600; margin-right: 6px; margin-bottom: 4px; }
-
-  /* Scrollbar más discreto en el panel del organizador (desktop) */
-  .table-scroll::-webkit-scrollbar { height: 8px; }
-  .table-scroll::-webkit-scrollbar-track { background: transparent; }
-  .table-scroll::-webkit-scrollbar-thumb { background: var(--surface-alt); border-radius: 99px; }
-
-  .scroll-hint {
-    display: none; align-items: center; gap: 6px; color: var(--text-dim); font-size: 12px;
-    font-weight: 700; margin-bottom: 10px; opacity: 0.8;
-  }
 
   @media (max-width: 640px) {
     .container-wide { padding: 0 12px 40px; }
@@ -257,57 +308,7 @@
     .org-header h2 { font-size: 19px; }
     .org-actions { width: 100%; }
     .org-actions .btn-export { flex: 1 1 0; justify-content: center; }
-
-    .scroll-hint { display: none !important; }
-
-    .table-scroll { overflow-x: visible; border-radius: 0; }
-    .table-wrap { min-width: 0; border: none; background: transparent; overflow: visible; }
-    .table-wrap thead { display: none; }
-    .table-wrap tbody { display: flex; flex-direction: column; gap: 10px; }
-
-    .table-wrap tr {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px;
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 14px 16px;
-    }
-    .table-wrap tr.juez-detail-row {
-      display: block; margin-top: -10px; padding-top: 16px; border-top: none;
-      border-top-left-radius: 0; border-top-right-radius: 0;
-    }
-
-    .table-wrap td {
-      display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
-      padding: 8px 0; border: none; white-space: normal;
-    }
-    .table-wrap td::before {
-      content: attr(data-label); color: var(--text-dim); font-size: 11px; font-weight: 800;
-      text-transform: uppercase; letter-spacing: 0.03em;
-    }
-
-    /* Nombre y categoría ocupan el ancho completo, arriba de la tarjeta */
-    .table-wrap td[data-label="#"] { display: none; }
-    .table-wrap td[data-label="Participante"] {
-      grid-column: 1 / -1; padding-bottom: 10px; margin-bottom: 6px;
-      border-bottom: 1px solid var(--border);
-    }
-    .table-wrap td[data-label="Participante"] strong { font-size: 16px; }
-    .table-wrap td[data-label="Categoría"] { grid-column: 1 / -1; margin-top: -14px; padding-top: 0; padding-bottom: 10px; margin-bottom: 6px; }
-    .table-wrap td[data-label="Categoría"]::before { display: none; }
-
-    /* Total resaltado, a ancho completo */
-    .table-wrap td[data-label="Total"] {
-      grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between;
-      background: var(--live-soft); border-radius: var(--radius-sm); padding: 10px 12px; margin: 6px 0;
-    }
-    .table-wrap td[data-label="Total"] strong { font-size: 17px; }
-
-    /* Botón de detalle a ancho completo */
-    .table-wrap td[data-label="Detalle"] { grid-column: 1 / -1; padding-top: 4px; }
-    .table-wrap td[data-label="Detalle"] button { width: 100%; justify-content: center; padding: 10px 14px; }
-  }
-
-  @media (min-width: 641px) and (max-width: 900px) {
-    .scroll-hint { display: flex; }
+    tbody#org-tbody { grid-template-columns: 1fr; }
   }
 
   /* Vista Leaderboard/Público */
@@ -418,23 +419,20 @@
       </div>
     </div>
     <div id="org-avisos"></div>
-    <div class="scroll-hint">↔️ Desliza horizontalmente para ver todas las columnas</div>
-    <div class="table-scroll">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr id="org-thead-row"></tr>
-          </thead>
-          <tbody id="org-tbody">
-            <tr>
-              <td colspan="100%" style="text-align:center; padding: 40px;">
-                <div class="spinner"></div>
-                <div style="margin-top:10px; color:var(--text-dim); font-size:13px;">Cargando puntuaciones...</div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr id="org-thead-row"></tr>
+        </thead>
+        <tbody id="org-tbody">
+          <tr>
+            <td colspan="100%" style="text-align:center; padding: 40px;">
+              <div class="spinner"></div>
+              <div style="margin-top:10px; color:var(--text-dim); font-size:13px;">Cargando puntuaciones...</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
