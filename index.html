@@ -692,6 +692,7 @@ function abrirPanelPuntuacion(participante) {
     const num = document.getElementById(`num-${c.ID}`);
     const pesoMax = Number(c.PesoMax);
     
+    // Solución 1: Evitar desplazamiento involuntario de la pantalla al enfocar e interactuar en móviles
     num.addEventListener('focus', (e) => {
       e.preventDefault();
       requestAnimationFrame(() => num.select());
@@ -749,19 +750,20 @@ function abrirPanelPuntuacion(participante) {
   };
 }
 
-/* Carga del Organizador y Desglose de Votos por Juez con Puntaje Total */
+/* Carga del Organizador y Desglose de Votos por Juez */
 let ordenDetallesAbiertos = {};
 
 function obtenerVotosJueces(r) {
-  let resultadoJueces = [];
-
   // 1. Lectura directa si existe la clave del backend
   if (r.votosJueces && Array.isArray(r.votosJueces) && r.votosJueces.length > 0) {
-    resultadoJueces = r.votosJueces;
-  } else if (r.desgloseJueces && Array.isArray(r.desgloseJueces) && r.desgloseJueces.length > 0) {
-    resultadoJueces = r.desgloseJueces;
-  } else if (r.detalle && Array.isArray(r.detalle)) {
-    // 2. Extraer si los votos vienen anidados dentro de "detalle" o "criterios"
+    return r.votosJueces;
+  }
+  if (r.desgloseJueces && Array.isArray(r.desgloseJueces) && r.desgloseJueces.length > 0) {
+    return r.desgloseJueces;
+  }
+
+  // 2. Extraer si los votos vienen anidados dentro de "detalle" o "criterios"
+  if (r.detalle && Array.isArray(r.detalle)) {
     const mapasJueces = {};
     let hayVotos = false;
 
@@ -774,30 +776,18 @@ function obtenerVotosJueces(r) {
           if (!mapasJueces[jNombre]) mapasJueces[jNombre] = [];
           mapasJueces[jNombre].push({ 
             criterio: d.criterioNombre || d.nombre || 'Criterio', 
-            puntaje: Number(v.puntaje ?? v.nota ?? v.valor ?? 0)
+            puntaje: v.puntaje ?? v.nota ?? v.valor ?? 0 
           });
         });
       }
     });
 
     if (hayVotos) {
-      resultadoJueces = Object.keys(mapasJueces).map(jNombre => ({
+      return Object.keys(mapasJueces).map(jNombre => ({
         juezNombre: jNombre,
         notas: mapasJueces[jNombre]
       }));
     }
-  }
-
-  // Calcular el puntaje total otorgado por cada juez
-  if (resultadoJueces && resultadoJueces.length > 0) {
-    return resultadoJueces.map(j => {
-      const notas = j.notas || j.puntajes || [];
-      const totalJuez = notas.reduce((acc, n) => acc + Number(n.puntaje || 0), 0);
-      return {
-        ...j,
-        totalJuez: totalJuez
-      };
-    });
   }
 
   return null;
@@ -836,17 +826,19 @@ async function loadOrganizador() {
         ${isOpen ? `
         <td class="detalle-contenido">
           <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px; font-weight:700;">DESGLOSE POR JUEZ</div>
-          ${votosLista ? votosLista.map(j => `
+          ${votosLista ? votosLista.map(j => {
+            const notasJuez = j.notas || j.puntajes || [];
+            const totalJuez = notasJuez.reduce((sum, n) => sum + Number(n.puntaje || 0), 0);
+            return `
             <div style="margin-bottom:6px;">
               <span class="juez-badge">${j.juezNombre || j.juez}</span>
               <span style="font-size:12px; color:var(--text-dim);">
-                ${(j.notas || j.puntajes || []).map(n => `${n.criterio || n.criterioNombre}: <strong style="color:var(--text);">${Number(n.puntaje).toFixed(2)}</strong>`).join(' | ')}
-              </span>
-              <span style="font-size:12px; color:var(--live); font-weight:700; margin-left:8px;">
-                → Total Juez: ${Number(j.totalJuez || 0).toFixed(2)} pts
+                ${notasJuez.map(n => `${n.criterio || n.criterioNombre}: <strong style="color:var(--text);">${n.puntaje}</strong>`).join(' | ')}
+                &nbsp;|&nbsp; Puntaje Total: <strong style="color:var(--accent);">${totalJuez.toFixed(2)}</strong>
               </span>
             </div>
-          `).join('') : '<span style="font-size:12px; color:var(--text-dim);">Sin votos desglosados disponibles</span>'}
+          `;
+          }).join('') : '<span style="font-size:12px; color:var(--text-dim);">Sin votos desglosados disponibles</span>'}
         </td>` : ''}
       </tr>`;
   });
@@ -855,6 +847,7 @@ async function loadOrganizador() {
 }
 
 async function toggleDetalle(id) {
+  // Mostrar spinner de inmediato en el botón mientras se recargan los resultados
   const btn = document.getElementById('btn-detalle-' + id);
   if (btn) {
     btn.disabled = true;
@@ -863,6 +856,8 @@ async function toggleDetalle(id) {
 
   ordenDetallesAbiertos[id] = !ordenDetallesAbiertos[id];
   await loadOrganizador();
+  // No es necesario restaurar el botón manualmente: loadOrganizador()
+  // reconstruye toda la tabla, así que el botón vuelve a su estado normal solo.
 }
 
 async function loadPublico() {
@@ -881,7 +876,7 @@ async function loadPublico() {
   `).join('');
 }
 
-/* Exportaciones a Excel y PDF con Desglose General y Detalle por Juez (Incluyendo Puntaje Total del Juez) */
+/* Solución 2: Exportaciones a Excel y PDF con Desglose General y Detalle por Juez */
 function exportarExcel() {
   if (!STATE.ultimosResultados) return;
   const data = STATE.ultimosResultados;
@@ -910,10 +905,11 @@ function exportarExcel() {
           'Categoría': r.categoria || r.Categoria || '—',
           'Jurado': j.juezNombre || j.juez
         };
-        (j.notas || j.puntajes || []).forEach(n => {
-          row[n.criterio || n.criterioNombre] = Number(n.puntaje).toFixed(2);
+        const notasJuez = j.notas || j.puntajes || [];
+        notasJuez.forEach(n => {
+          row[n.criterio || n.criterioNombre] = n.puntaje;
         });
-        row['Puntaje Total Juez'] = Number(j.totalJuez || 0).toFixed(2);
+        row['Puntaje Total'] = notasJuez.reduce((sum, n) => sum + Number(n.puntaje || 0), 0).toFixed(2);
         detalleJuecesRows.push(row);
       });
     }
@@ -968,13 +964,15 @@ function exportarPDF() {
     const votos = obtenerVotosJueces(r);
     if (votos && votos.length > 0) {
       votos.forEach(j => {
-        const notasTexto = (j.notas || j.puntajes || []).map(n => `${n.criterio || n.criterioNombre}: ${Number(n.puntaje).toFixed(2)}`).join(' | ');
+        const notasJuez = j.notas || j.puntajes || [];
+        const notasTexto = notasJuez.map(n => `${n.criterio || n.criterioNombre}: ${n.puntaje}`).join(' | ');
+        const totalJuez = notasJuez.reduce((sum, n) => sum + Number(n.puntaje || 0), 0).toFixed(2);
         bodyJueces.push([
           i + 1,
           r.nombre || r.Nombre,
           j.juezNombre || j.juez,
           notasTexto,
-          Number(j.totalJuez || 0).toFixed(2)
+          totalJuez
         ]);
       });
     }
@@ -987,7 +985,7 @@ function exportarPDF() {
     
     doc.autoTable({
       startY: 22,
-      head: [['# Pos', 'Participante', 'Jurado', 'Calificaciones por Criterio', 'Total Juez']],
+      head: [['# Pos', 'Participante', 'Jurado', 'Calificaciones por Criterio', 'Puntaje Total']],
       body: bodyJueces,
       theme: 'striped',
       headStyles: { fillColor: [51, 65, 85] }
