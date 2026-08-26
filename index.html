@@ -830,12 +830,16 @@ async function loadOrganizador() {
             const notasJuez = j.notas || j.puntajes || [];
             const totalJuez = notasJuez.reduce((sum, n) => sum + Number(n.puntaje || 0), 0);
             return `
-            <div style="margin-bottom:6px;">
-              <span class="juez-badge">${j.juezNombre || j.juez}</span>
-              <span style="font-size:12px; color:var(--text-dim);">
+            <div style="margin-bottom:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid var(--border);">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:4px;">
+                <span class="juez-badge">${j.juezNombre || j.juez}</span>
+                <span style="font-size:13px; font-weight:800; color:var(--accent); white-space:nowrap;">
+                  Puntaje Total: ${totalJuez.toFixed(2)}
+                </span>
+              </div>
+              <div style="font-size:12px; color:var(--text-dim);">
                 ${notasJuez.map(n => `${n.criterio || n.criterioNombre}: <strong style="color:var(--text);">${n.puntaje}</strong>`).join(' | ')}
-                &nbsp;|&nbsp; Puntaje Total: <strong style="color:var(--accent);">${totalJuez.toFixed(2)}</strong>
-              </span>
+              </div>
             </div>
           `;
           }).join('') : '<span style="font-size:12px; color:var(--text-dim);">Sin votos desglosados disponibles</span>'}
