@@ -174,9 +174,11 @@
     border: 1px solid var(--border); transition: var(--transition);
   }
   .participante-row.done { border-color: var(--live); background: rgba(30, 41, 59, 0.6); }
+  .participante-row.disqualified { border-color: var(--danger); background: rgba(239, 68, 68, 0.1); }
   .participante-row .name { font-weight: 700; font-size: 15px; }
   .participante-row .status { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
   .participante-row.done .status { color: var(--live); font-weight: 700; }
+  .participante-row.disqualified .status { color: var(--danger); font-weight: 700; }
   .participante-row button {
     background: var(--surface-alt); color: var(--text); padding: 10px 18px; border-radius: var(--radius-sm);
     font-size: 14px; font-weight: 700; border: 1px solid var(--border); flex-shrink: 0; min-height: 44px;
@@ -218,6 +220,9 @@
     color: var(--live); background: var(--live-soft); border-radius: var(--radius-sm);
     padding: 14px; margin: 20px 0; border: 1px solid rgba(16, 185, 129, 0.2);
   }
+  .panel-total.disqualified {
+    color: var(--danger); background: var(--danger-soft); border-color: rgba(239, 68, 68, 0.2);
+  }
 
   /* Panel del Organizador — Toolbar responsive */
   .org-header {
@@ -227,7 +232,7 @@
   .org-actions { display: flex; gap: 8px; flex-wrap: wrap; }
   .org-actions .btn-export { flex: 0 0 auto; }
 
-  /* Tarjetas del Organizador — mismo diseño en PC y en móvil, cambia solo el número de columnas */
+  /* Tarjetas del Organizador */
   .table-wrap { background: transparent; }
   table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
   thead { display: none; }
@@ -238,7 +243,6 @@
     gap: 14px;
     align-items: start;
   }
-  /* Mientras carga (una sola fila con colspan), que ocupe todo el ancho y se vea centrada */
   tbody#org-tbody > tr:has(td[colspan]) {
     grid-column: 1 / -1; display: block; background: transparent; border: none;
     box-shadow: none; padding: 0;
@@ -255,7 +259,6 @@
   }
   .table-wrap tr:hover { border-color: var(--accent); transform: translateY(-2px); }
 
-  /* Desglose por juez: panel dentro de la misma tarjeta, a todo su ancho */
   .table-wrap td.detalle-contenido {
     grid-column: 1 / -1; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border);
     border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 6px;
@@ -271,7 +274,6 @@
     text-transform: uppercase; letter-spacing: 0.03em;
   }
 
-  /* Rango: insignia circular flotando en la esquina de la tarjeta */
   .table-wrap tr { position: relative; padding-top: 42px; }
   .table-wrap td[data-label="#"] {
     position: absolute; top: 14px; left: 14px; padding: 0;
@@ -281,7 +283,6 @@
   }
   .table-wrap td[data-label="#"]::before { display: none; }
 
-  /* Nombre y categoría ocupan el ancho completo, arriba de la tarjeta */
   .table-wrap td[data-label="Participante"] {
     grid-column: 1 / -1; padding-left: 40px; padding-bottom: 10px; margin-bottom: 6px;
     border-bottom: 1px solid var(--border); margin-top: -30px;
@@ -290,14 +291,15 @@
   .table-wrap td[data-label="Categoría"] { grid-column: 1 / -1; padding-top: 0; padding-bottom: 10px; margin-bottom: 6px; }
   .table-wrap td[data-label="Categoría"]::before { display: none; }
 
-  /* Total resaltado, a ancho completo */
   .table-wrap td[data-label="Total"] {
     grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between;
     background: var(--live-soft); border-radius: var(--radius-sm); padding: 10px 12px; margin: 6px 0;
   }
+  .table-wrap td[data-label="Total"].disqualified-bg {
+    background: var(--danger-soft);
+  }
   .table-wrap td[data-label="Total"] strong { font-size: 17px; }
 
-  /* Botón de detalle a ancho completo */
   .table-wrap td[data-label="Detalle"] { grid-column: 1 / -1; padding-top: 4px; }
   .table-wrap td[data-label="Detalle"] button { width: 100%; justify-content: center; padding: 10px 14px; }
 
@@ -319,12 +321,14 @@
     transition: var(--transition);
   }
   .lb-row.rank-1 { border-color: var(--accent); background: linear-gradient(90deg, var(--accent-soft) 0%, var(--surface) 100%); }
+  .lb-row.disqualified { border-color: var(--danger); background: rgba(239, 68, 68, 0.05); }
   .lb-row .lb-rank {
     width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
     font-family: 'Space Mono', monospace; font-weight: 700; background: var(--surface-alt);
   }
   .lb-row.rank-1 .lb-rank { background: var(--accent); color: #FFF; box-shadow: 0 0 12px var(--accent-glow); }
   .lb-total { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 18px; color: var(--accent); }
+  .lb-total.disqualified { color: var(--danger); font-size: 15px; }
 
   .spinner {
     width: 20px; height: 20px; border-radius: 50%;
@@ -618,12 +622,18 @@ async function entrarPanelJuez() {
 }
 
 function calcularTotalParticipante(participanteId) {
-  let total = 0, count = 0;
+  let total = 0, count = 0, descalificado = false;
   STATE.criterios.forEach(c => {
     const key = participanteId + '|' + c.ID;
-    if (key in STATE.misPuntajes) { total += Number(STATE.misPuntajes[key]); count++; }
+    if (key in STATE.misPuntajes) {
+      const p = Number(STATE.misPuntajes[key]);
+      if (p === 0) descalificado = true;
+      total += p; 
+      count++; 
+    }
   });
-  return count === STATE.criterios.length ? total : null;
+  if (count !== STATE.criterios.length) return null;
+  return { total, descalificado };
 }
 
 function renderParticipantesJuez() {
@@ -639,14 +649,22 @@ function renderParticipantesJuez() {
       lbl.textContent = p.Categoria;
       wrap.appendChild(lbl);
     }
-    const total = calcularTotalParticipante(p.ID);
-    const scored = total !== null;
+    const res = calcularTotalParticipante(p.ID);
+    const scored = res !== null;
+    const isDescalificado = res && res.descalificado;
+    
     const row = document.createElement('div');
-    row.className = 'participante-row' + (scored ? ' done' : '');
+    row.className = 'participante-row' + (scored ? (isDescalificado ? ' disqualified' : ' done') : '');
+    
+    let statusText = 'Pendiente';
+    if (scored) {
+      statusText = isDescalificado ? '✕ DESCALIFICADO (Nota 0)' : `✓ Puntaje: ${res.total.toFixed(2)} pts`;
+    }
+
     row.innerHTML = `
       <div>
         <div class="name">${p.Nombre}</div>
-        <div class="status">${scored ? `✓ Puntaje: ${total.toFixed(2)} pts` : 'Pendiente'}</div>
+        <div class="status">${statusText}</div>
       </div>
       <button>${scored ? 'Editar' : 'Calificar'}</button>`;
     row.querySelector('button').onclick = () => abrirPanelPuntuacion(p);
@@ -681,9 +699,21 @@ function abrirPanelPuntuacion(participante) {
     </div>`;
 
   function actualizarTotalPanel() {
-    let total = 0;
-    STATE.criterios.forEach(c => { total += Number(document.getElementById(`num-${c.ID}`).value || 0); });
-    document.getElementById('panel-total').textContent = `PUNTAJE TOTAL: ${total.toFixed(2)} PTS`;
+    let total = 0, tieneCero = false;
+    STATE.criterios.forEach(c => { 
+      const val = Number(document.getElementById(`num-${c.ID}`).value || 0);
+      if (val === 0) tieneCero = true;
+      total += val; 
+    });
+    
+    const panelTotalEl = document.getElementById('panel-total');
+    if (tieneCero) {
+      panelTotalEl.textContent = `ESTADO: DESCALIFICADO (Puntaje 0)`;
+      panelTotalEl.classList.add('disqualified');
+    } else {
+      panelTotalEl.textContent = `PUNTAJE TOTAL: ${total.toFixed(2)} PTS`;
+      panelTotalEl.classList.remove('disqualified');
+    }
   }
   actualizarTotalPanel();
 
@@ -692,7 +722,6 @@ function abrirPanelPuntuacion(participante) {
     const num = document.getElementById(`num-${c.ID}`);
     const pesoMax = Number(c.PesoMax);
     
-    // Solución 1: Evitar desplazamiento involuntario de la pantalla al enfocar e interactuar en móviles
     num.addEventListener('focus', (e) => {
       e.preventDefault();
       requestAnimationFrame(() => num.select());
@@ -754,15 +783,9 @@ function abrirPanelPuntuacion(participante) {
 let ordenDetallesAbiertos = {};
 
 function obtenerVotosJueces(r) {
-  // 1. Lectura directa si existe la clave del backend
-  if (r.votosJueces && Array.isArray(r.votosJueces) && r.votosJueces.length > 0) {
-    return r.votosJueces;
-  }
-  if (r.desgloseJueces && Array.isArray(r.desgloseJueces) && r.desgloseJueces.length > 0) {
-    return r.desgloseJueces;
-  }
+  if (r.votosJueces && Array.isArray(r.votosJueces) && r.votosJueces.length > 0) return r.votosJueces;
+  if (r.desgloseJueces && Array.isArray(r.desgloseJueces) && r.desgloseJueces.length > 0) return r.desgloseJueces;
 
-  // 2. Extraer si los votos vienen anidados dentro de "detalle" o "criterios"
   if (r.detalle && Array.isArray(r.detalle)) {
     const mapasJueces = {};
     let hayVotos = false;
@@ -793,6 +816,17 @@ function obtenerVotosJueces(r) {
   return null;
 }
 
+function verificarDescalificacion(r, votosLista) {
+  if (r.descalificado) return true;
+  if (votosLista && Array.isArray(votosLista)) {
+    return votosLista.some(j => {
+      const notas = j.notas || j.puntajes || [];
+      return notas.some(n => Number(n.puntaje) === 0);
+    });
+  }
+  return false;
+}
+
 async function loadOrganizador() {
   if (!STATE.criterios.length) await loadInit();
   const data = await apiGet('resultados');
@@ -803,6 +837,15 @@ async function loadOrganizador() {
   const thead = document.getElementById('org-thead-row');
   thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` + data.criterios.map(c => `<th>${c.Nombre}</th>`).join('') + `<th>Total</th><th>Detalle</th>`;
 
+  // Ordenar en frontend: Los no descalificados primero
+  data.resultados.sort((a, b) => {
+    const descA = verificarDescalificacion(a, obtenerVotosJueces(a));
+    const descB = verificarDescalificacion(b, obtenerVotosJueces(b));
+    if (descA && !descB) return 1;
+    if (!descA && descB) return -1;
+    return (Number(b.total) || 0) - (Number(a.total) || 0);
+  });
+
   const tbody = document.getElementById('org-tbody');
   let html = '';
 
@@ -810,14 +853,19 @@ async function loadOrganizador() {
     const isOpen = ordenDetallesAbiertos[r.id || r.ID || i];
     const itemKey = r.id || r.ID || i;
     const votosLista = obtenerVotosJueces(r);
+    const esDescalificado = verificarDescalificacion(r, votosLista);
+
+    const textoTotal = esDescalificado 
+      ? `<strong style="color:var(--danger);">DESCALIFICADO</strong>` 
+      : `<strong style="color:var(--accent);">${Number(r.total || 0).toFixed(2)}</strong>`;
 
     html += `
       <tr>
         <td data-label="#">${i + 1}</td>
         <td data-label="Participante"><strong>${r.nombre || r.Nombre}</strong></td>
         <td data-label="Categoría">${r.categoria || r.Categoria || '—'}</td>
-        ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${Number(d.promedio || 0).toFixed(2)}</td>`).join('')}
-        <td data-label="Total"><strong style="color:var(--accent);">${Number(r.total || 0).toFixed(2)}</strong></td>
+        ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${esDescalificado ? '-' : Number(d.promedio || 0).toFixed(2)}</td>`).join('')}
+        <td data-label="Total" class="${esDescalificado ? 'disqualified-bg' : ''}">${textoTotal}</td>
         <td data-label="Detalle">
           <button class="btn-export" id="btn-detalle-${itemKey}" style="padding:4px 8px; font-size:11px; min-width:84px;" onclick="toggleDetalle('${itemKey}')">
             ${isOpen ? 'Ocultar ▲' : 'Ver Jueces ▼'}
@@ -828,17 +876,18 @@ async function loadOrganizador() {
           <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px; font-weight:700;">DESGLOSE POR JUEZ</div>
           ${votosLista ? votosLista.map(j => {
             const notasJuez = j.notas || j.puntajes || [];
+            const juezTieneCero = notasJuez.some(n => Number(n.puntaje) === 0);
             const totalJuez = notasJuez.reduce((sum, n) => sum + Number(n.puntaje || 0), 0);
             return `
             <div style="margin-bottom:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid var(--border);">
               <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:4px;">
                 <span class="juez-badge">${j.juezNombre || j.juez}</span>
-                <span style="font-size:13px; font-weight:800; color:var(--accent); white-space:nowrap;">
-                  Puntaje Total: ${totalJuez.toFixed(2)}
+                <span style="font-size:13px; font-weight:800; color:${juezTieneCero ? 'var(--danger)' : 'var(--accent)'}; white-space:nowrap;">
+                  ${juezTieneCero ? 'DESCALIFICADO' : 'Puntaje Total: ' + totalJuez.toFixed(2)}
                 </span>
               </div>
               <div style="font-size:12px; color:var(--text-dim);">
-                ${notasJuez.map(n => `${n.criterio || n.criterioNombre}: <strong style="color:var(--text);">${n.puntaje}</strong>`).join(' | ')}
+                ${notasJuez.map(n => `${n.criterio || n.criterioNombre}: <strong style="color:${Number(n.puntaje) === 0 ? 'var(--danger)' : 'var(--text)'};">${n.puntaje}</strong>`).join(' | ')}
               </div>
             </div>
           `;
@@ -851,7 +900,6 @@ async function loadOrganizador() {
 }
 
 async function toggleDetalle(id) {
-  // Mostrar spinner de inmediato en el botón mientras se recargan los resultados
   const btn = document.getElementById('btn-detalle-' + id);
   if (btn) {
     btn.disabled = true;
@@ -860,60 +908,74 @@ async function toggleDetalle(id) {
 
   ordenDetallesAbiertos[id] = !ordenDetallesAbiertos[id];
   await loadOrganizador();
-  // No es necesario restaurar el botón manualmente: loadOrganizador()
-  // reconstruye toda la tabla, así que el botón vuelve a su estado normal solo.
 }
 
 async function loadPublico() {
   const data = await apiGet('resultados');
   if (!data.ok) return;
+
+  data.resultados.sort((a, b) => {
+    const descA = verificarDescalificacion(a, obtenerVotosJueces(a));
+    const descB = verificarDescalificacion(b, obtenerVotosJueces(b));
+    if (descA && !descB) return 1;
+    if (!descA && descB) return -1;
+    return (Number(b.total) || 0) - (Number(a.total) || 0);
+  });
+
   const wrap = document.getElementById('publico-leaderboard');
-  wrap.innerHTML = data.resultados.map((r, i) => `
-    <div class="lb-row ${i === 0 ? 'rank-1' : ''}">
-      <div class="lb-rank">${i + 1}</div>
-      <div style="flex:1;">
-        <div style="font-weight:700; font-size:16px;">${r.nombre || r.Nombre}</div>
-        <div style="font-size:13px; color:var(--text-dim);">${r.categoria || r.Categoria || '—'}</div>
+  wrap.innerHTML = data.resultados.map((r, i) => {
+    const votos = obtenerVotosJueces(r);
+    const esDescalificado = verificarDescalificacion(r, votos);
+
+    return `
+      <div class="lb-row ${i === 0 && !esDescalificado ? 'rank-1' : ''} ${esDescalificado ? 'disqualified' : ''}">
+        <div class="lb-rank">${i + 1}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700; font-size:16px;">${r.nombre || r.Nombre}</div>
+          <div style="font-size:13px; color:var(--text-dim);">${r.categoria || r.Categoria || '—'}</div>
+        </div>
+        <div class="lb-total ${esDescalificado ? 'disqualified' : ''}">
+          ${esDescalificado ? 'DESCALIFICADO' : Number(r.total || 0).toFixed(2) + ' pts'}
+        </div>
       </div>
-      <div class="lb-total">${Number(r.total || 0).toFixed(2)} pts</div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
-/* Solución 2: Exportaciones a Excel y PDF con Desglose General y Detalle por Juez */
 function exportarExcel() {
   if (!STATE.ultimosResultados) return;
   const data = STATE.ultimosResultados;
   
-  // Hoja 1: Resumen General
   const resumenRows = data.resultados.map((r, i) => {
+    const votos = obtenerVotosJueces(r);
+    const esDesc = verificarDescalificacion(r, votos);
     const row = {
       'Puesto': i + 1,
       'Participante': r.nombre || r.Nombre,
       'Categoría': r.categoria || r.Categoria || '—'
     };
-    r.detalle.forEach(d => { row[d.criterioNombre] = Number(d.promedio || 0).toFixed(2); });
-    row['Total Promedio'] = Number(r.total || 0).toFixed(2);
+    r.detalle.forEach(d => { row[d.criterioNombre] = esDesc ? '-' : Number(d.promedio || 0).toFixed(2); });
+    row['Total Promedio'] = esDesc ? 'DESCALIFICADO' : Number(r.total || 0).toFixed(2);
     return row;
   });
 
-  // Hoja 2: Detalle por Juez
   const detalleJuecesRows = [];
   data.resultados.forEach((r, i) => {
     const votos = obtenerVotosJueces(r);
     if (votos && votos.length > 0) {
       votos.forEach(j => {
+        const notasJuez = j.notas || j.puntajes || [];
+        const tieneCero = notasJuez.some(n => Number(n.puntaje) === 0);
         const row = {
           'Puesto General': i + 1,
           'Participante': r.nombre || r.Nombre,
           'Categoría': r.categoria || r.Categoria || '—',
           'Jurado': j.juezNombre || j.juez
         };
-        const notasJuez = j.notas || j.puntajes || [];
         notasJuez.forEach(n => {
           row[n.criterio || n.criterioNombre] = n.puntaje;
         });
-        row['Puntaje Total'] = notasJuez.reduce((sum, n) => sum + Number(n.puntaje || 0), 0).toFixed(2);
+        row['Puntaje Total'] = tieneCero ? 'DESCALIFICADO' : notasJuez.reduce((sum, n) => sum + Number(n.puntaje || 0), 0).toFixed(2);
         detalleJuecesRows.push(row);
       });
     }
@@ -938,21 +1000,23 @@ function exportarPDF() {
 
   const data = STATE.ultimosResultados;
   
-  // Título
   doc.setFontSize(18);
   doc.text("Resultados Oficiales - Concurso de Danza", 14, 15);
   doc.setFontSize(10);
   doc.text(`Fecha de reporte: ${new Date().toLocaleString()}`, 14, 22);
 
-  // Tabla 1: Resumen General
   const headersResumen = [['#', 'Participante', 'Categoría', ...data.criterios.map(c => c.Nombre), 'Total']];
-  const bodyResumen = data.resultados.map((r, i) => [
-    i + 1,
-    r.nombre || r.Nombre,
-    r.categoria || r.Categoria || '—',
-    ...r.detalle.map(d => Number(d.promedio || 0).toFixed(2)),
-    Number(r.total || 0).toFixed(2)
-  ]);
+  const bodyResumen = data.resultados.map((r, i) => {
+    const votos = obtenerVotosJueces(r);
+    const esDesc = verificarDescalificacion(r, votos);
+    return [
+      i + 1,
+      r.nombre || r.Nombre,
+      r.categoria || r.Categoria || '—',
+      ...r.detalle.map(d => esDesc ? '-' : Number(d.promedio || 0).toFixed(2)),
+      esDesc ? 'DESCALIFICADO' : Number(r.total || 0).toFixed(2)
+    ];
+  });
 
   doc.autoTable({
     startY: 28,
@@ -962,15 +1026,15 @@ function exportarPDF() {
     headStyles: { fillColor: [99, 102, 241] }
   });
 
-  // Tabla 2: Detalle por Juez (Nueva página)
   const bodyJueces = [];
   data.resultados.forEach((r, i) => {
     const votos = obtenerVotosJueces(r);
     if (votos && votos.length > 0) {
       votos.forEach(j => {
         const notasJuez = j.notas || j.puntajes || [];
+        const tieneCero = notasJuez.some(n => Number(n.puntaje) === 0);
         const notasTexto = notasJuez.map(n => `${n.criterio || n.criterioNombre}: ${n.puntaje}`).join(' | ');
-        const totalJuez = notasJuez.reduce((sum, n) => sum + Number(n.puntaje || 0), 0).toFixed(2);
+        const totalJuez = tieneCero ? 'DESCALIFICADO' : notasJuez.reduce((sum, n) => sum + Number(n.puntaje || 0), 0).toFixed(2);
         bodyJueces.push([
           i + 1,
           r.nombre || r.Nombre,
@@ -999,7 +1063,7 @@ function exportarPDF() {
   doc.save(`Resultados_Concurso_Danza_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
-// Inicialización
+// Inicializar router
 router();
 </script>
 </body>
