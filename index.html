@@ -668,16 +668,6 @@ function calcularTotalParticipante(participanteId) {
   return { total, descalificado };
 }
 
-// Lee la columna EDITAR de la pestaña Jurado (acepta Editar/EDITAR/editar como encabezado, Si/No/true/false como valor)
-function juezPuedeEditar(juezId) {
-  const j = STATE.jueces.find(x => String(x.ID) === String(juezId));
-  if (!j) return true;
-  const raw = j.Editar ?? j.EDITAR ?? j.editar;
-  if (raw === undefined || raw === null || String(raw).trim() === '') return true; // columna vacía o sin configurar = permitido
-  const val = String(raw).trim().toLowerCase();
-  return !(val === 'no' || val === 'false' || val === '0');
-}
-
 function renderParticipantesJuez() {
   const wrap = document.getElementById('participantes-list');
   wrap.innerHTML = '';
@@ -694,7 +684,6 @@ function renderParticipantesJuez() {
     const res = calcularTotalParticipante(p.ID);
     const scored = res !== null;
     const isDescalificado = res && res.descalificado;
-    const bloqueado = scored && !juezPuedeEditar(STATE.juezActual.id);
     
     const row = document.createElement('div');
     row.className = 'participante-row' + (scored ? (isDescalificado ? ' disqualified' : ' done') : '');
@@ -709,7 +698,7 @@ function renderParticipantesJuez() {
         <div class="name">${p.Nombre}</div>
         <div class="status">${statusText}</div>
       </div>
-      <button>${scored ? (bloqueado ? '🔒 Ver' : 'Editar') : 'Calificar'}</button>`;
+      <button>${scored ? 'Editar' : 'Calificar'}</button>`;
     row.querySelector('button').onclick = () => abrirPanelPuntuacion(p);
     wrap.appendChild(row);
   });
@@ -724,24 +713,20 @@ function abrirPanelPuntuacion(participante) {
     valores[c.ID] = STATE.misPuntajes[participante.ID + '|' + c.ID] ?? Math.round(Number(c.PesoMax) / 2);
   });
 
-  const yaGuardado = calcularTotalParticipante(participante.ID) !== null;
-  const bloqueado = yaGuardado && !juezPuedeEditar(STATE.juezActual.id);
-
   wrap.innerHTML = `
     <div class="score-panel">
       <button class="back-link" id="btn-volver" style="margin-bottom:16px;">&larr; Volver</button>
       <h3 style="margin-bottom: 20px;">${participante.Nombre}</h3>
-      ${bloqueado ? `<div style="background:var(--danger-soft); border:1px solid var(--danger); border-radius:var(--radius-sm); padding:10px 14px; margin-bottom:16px; font-size:13px; color:var(--danger); font-weight:600;">🔒 Esta calificación ya fue guardada. Tu jurado no tiene permiso para editarla; solo puedes verla.</div>` : ''}
       ${STATE.criterios.map(c => `
         <div class="criterio-row">
           <label><span>${c.Nombre}</span><span id="val-${c.ID}" style="color:var(--accent); font-family:'Space Mono';">${Number(valores[c.ID]).toFixed(2)} / ${c.PesoMax}</span></label>
           <div class="row-inputs">
-            <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}" ${bloqueado ? 'disabled' : ''}>
-            <input type="number" inputmode="decimal" pattern="[0-9]*" min="0" max="${c.PesoMax}" step="0.01" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}" ${bloqueado ? 'disabled' : ''}>
+            <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}">
+            <input type="number" inputmode="decimal" pattern="[0-9]*" min="0" max="${c.PesoMax}" step="0.01" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}">
           </div>
         </div>`).join('')}
       <div class="panel-total" id="panel-total"></div>
-      <button class="primary-btn" id="btn-guardar" ${bloqueado ? 'style="opacity:0.6;"' : ''}>${bloqueado ? '🔒 Edición Bloqueada' : 'Guardar Puntuaciones'}</button>
+      <button class="primary-btn" id="btn-guardar">Guardar Puntuaciones</button>
       <div id="save-status" style="text-align:center; margin-top:10px; font-size:13px; color:var(--text-dim);"></div>
     </div>`;
 
@@ -801,10 +786,6 @@ function abrirPanelPuntuacion(participante) {
   };
   
   document.getElementById('btn-guardar').onclick = async () => {
-    if (bloqueado) {
-      document.getElementById('save-status').innerHTML = `<span style="color:var(--danger); font-weight:700;">🔒 No puedes editar una calificación ya guardada. Esta acción está restringida por el organizador.</span>`;
-      return;
-    }
     const btn = document.getElementById('btn-guardar');
     const status = document.getElementById('save-status');
     btn.disabled = true;
