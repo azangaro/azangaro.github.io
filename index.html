@@ -899,7 +899,7 @@ async function loadOrganizador() {
               <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:4px;">
                 <span class="juez-badge">${j.juezNombre || j.juez}</span>
                 <span style="font-size:13px; font-weight:800; color:${juezTieneCero ? 'var(--danger)' : 'var(--accent)'}; white-space:nowrap;">
-                  ${juezTieneCero ? 'DESCALIFICADO' : 'Puntaje Total: ' + totalJuez.toFixed(2)}
+                  ${juezTieneCero ? 'DESCALIFICADO' : 'Puntaje: ' + totalJuez.toFixed(2)}
                 </span>
               </div>
               <div style="font-size:12px; color:var(--text-dim);">
