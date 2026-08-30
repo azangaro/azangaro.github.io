@@ -867,9 +867,13 @@ async function loadOrganizador() {
     const votosLista = obtenerVotosJueces(r);
     const esDescalificado = verificarDescalificacion(r, votosLista);
 
+    const numJueces = votosLista ? votosLista.length : null;
+    const sufijoJueces = numJueces
+      ? `<span style="color:var(--text-dim); font-weight:600; font-size:12px;" title="${numJueces} juez(es) dejaron puntaje"> /${numJueces}</span>`
+      : '';
     const textoTotal = esDescalificado 
-      ? `<strong style="color:var(--danger);">DESCALIFICADO</strong>` 
-      : `<strong style="color:var(--accent);">${Number(r.total || 0).toFixed(2)}</strong>`;
+      ? `<strong style="color:var(--danger);">DESCALIFICADO</strong>${sufijoJueces}` 
+      : `<strong style="color:var(--accent);">${Number(r.total || 0).toFixed(2)}</strong>${sufijoJueces}`;
 
     html += `
       <tr>
