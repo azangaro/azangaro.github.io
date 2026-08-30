@@ -195,11 +195,16 @@
     background: var(--surface-alt); color: var(--text); padding: 10px 18px; border-radius: var(--radius-sm);
     font-size: 14px; font-weight: 700; border: 1px solid var(--border); flex-shrink: 0; min-height: 44px;
   }
+  .participante-row button.ver-only { opacity: 0.85; }
 
   /* Panel de Puntuación Táctil */
   .score-panel {
     background: var(--surface); border-radius: var(--radius-lg); padding: 22px 18px;
     border: 1px solid var(--border); box-shadow: var(--shadow);
+  }
+  .readonly-banner {
+    background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 12px 14px; font-size: 13px; color: var(--text-dim); margin-bottom: 16px; font-weight: 600;
   }
   .criterio-row { 
     background: var(--surface-alt); padding: 16px; border-radius: var(--radius); margin-bottom: 12px; 
@@ -220,12 +225,15 @@
     cursor: pointer; -webkit-appearance: none; margin-top: -9px;
     box-shadow: 0 0 10px var(--accent-glow);
   }
+  input[type=range]:disabled::-webkit-slider-thumb { background: var(--text-dim); box-shadow: none; }
+  input[type=range]:disabled { opacity: 0.6; cursor: not-allowed; }
 
   input[type=number] {
     width: 75px; height: 44px; text-align: center; border-radius: var(--radius-sm);
     border: 1px solid var(--border); background: var(--bg); color: var(--accent);
     font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700;
   }
+  input[type=number]:disabled { opacity: 0.6; cursor: not-allowed; color: var(--text-dim); }
 
   .panel-total {
     text-align: center; font-family: 'Space Mono', monospace; font-weight: 700; font-size: 20px;
@@ -488,7 +496,7 @@
 </div>
 
 <script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbz2cjgJHeK_5IkZ54qXfDQOvGludecHb5Xfaf2j2gFKqT0z-b6Zdz77W-vQkEfSmzfP/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbznfLXG0vsbnq9lqTIBOJPMuJHBntcx543V8fsvu3c_JyLwfMT98kVOPFgkEbkpklxT/exec';
 
 async function apiGet(action, params = {}) {
   const url = new URL(API_URL);
@@ -507,7 +515,16 @@ async function apiPost(body) {
   return res.json();
 }
 
-let STATE = { jueces: [], participantes: [], criterios: [], juezActual: null, pin: '', misPuntajes: {}, resultadosTimer: null, ultimosResultados: null };
+let STATE = { jueces: [], participantes: [], criterios: [], juezActual: null, pin: '', misPuntajes: {}, resultadosTimer: null, ultimosResultados: null, puedeEditar: true };
+
+/* Interpreta la columna EDITAR de la hoja Jueces (Si/No, true/false, 1/0, etc.) */
+function permiteEditar(valor) {
+  if (valor === undefined || valor === null || valor === '') return false;
+  if (typeof valor === 'boolean') return valor;
+  if (typeof valor === 'number') return valor === 1;
+  const v = String(valor).trim().toLowerCase();
+  return v === 'si' || v === 'sí' || v === 'yes' || v === 'true' || v === '1' || v === 'x';
+}
 
 const VIEWS = ['landing', 'jueces', 'organizador', 'publico'];
 function router() {
@@ -646,7 +663,11 @@ async function entrarPanelJuez() {
   document.getElementById('jueces-panel').classList.remove('hidden');
   document.getElementById('juez-nombre').textContent = STATE.juezActual.nombre;
   document.getElementById('participantes-list').innerHTML = `<div class="loading-state"><div class="spinner"></div>Cargando datos...</div>`;
-  
+
+  // Determina si este jurado puede editar puntuaciones ya guardadas, según la columna EDITAR de la hoja Jueces
+  const juezData = STATE.jueces.find(j => String(j.ID) === String(STATE.juezActual.id));
+  STATE.puedeEditar = juezData ? permiteEditar(juezData.EDITAR) : false;
+
   const mp = await apiGet('misPuntajes', { juezId: STATE.juezActual.id });
   STATE.misPuntajes = {};
   (mp.puntajes || []).forEach(p => { STATE.misPuntajes[p.ParticipanteID + '|' + p.CriterioID] = p.Puntaje; });
@@ -684,6 +705,7 @@ function renderParticipantesJuez() {
     const res = calcularTotalParticipante(p.ID);
     const scored = res !== null;
     const isDescalificado = res && res.descalificado;
+    const soloLectura = scored && !STATE.puedeEditar;
     
     const row = document.createElement('div');
     row.className = 'participante-row' + (scored ? (isDescalificado ? ' disqualified' : ' done') : '');
@@ -693,18 +715,21 @@ function renderParticipantesJuez() {
       statusText = isDescalificado ? '✕ DESCALIFICADO (Nota 0)' : `✓ Puntaje: ${res.total.toFixed(2)} pts`;
     }
 
+    let botonLabel = 'Calificar';
+    if (scored) botonLabel = STATE.puedeEditar ? 'Editar' : 'Ver';
+
     row.innerHTML = `
       <div>
         <div class="name">${p.Nombre}</div>
         <div class="status">${statusText}</div>
       </div>
-      <button>${scored ? 'Editar' : 'Calificar'}</button>`;
-    row.querySelector('button').onclick = () => abrirPanelPuntuacion(p);
+      <button class="${soloLectura ? 'ver-only' : ''}">${botonLabel}</button>`;
+    row.querySelector('button').onclick = () => abrirPanelPuntuacion(p, soloLectura);
     wrap.appendChild(row);
   });
 }
 
-function abrirPanelPuntuacion(participante) {
+function abrirPanelPuntuacion(participante, soloLectura = false) {
   document.getElementById('participantes-list').classList.add('hidden');
   const wrap = document.getElementById('score-panel-wrap');
   const valores = {};
@@ -717,16 +742,17 @@ function abrirPanelPuntuacion(participante) {
     <div class="score-panel">
       <button class="back-link" id="btn-volver" style="margin-bottom:16px;">&larr; Volver</button>
       <h3 style="margin-bottom: 20px;">${participante.Nombre}</h3>
+      ${soloLectura ? `<div class="readonly-banner">🔒 Este puntaje ya fue guardado y tu usuario no tiene permiso para editarlo. Puedes verlo, pero no modificarlo.</div>` : ''}
       ${STATE.criterios.map(c => `
         <div class="criterio-row">
           <label><span>${c.Nombre}</span><span id="val-${c.ID}" style="color:var(--accent); font-family:'Space Mono';">${Number(valores[c.ID]).toFixed(2)} / ${c.PesoMax}</span></label>
           <div class="row-inputs">
-            <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}">
-            <input type="number" inputmode="decimal" pattern="[0-9]*" min="0" max="${c.PesoMax}" step="0.01" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}">
+            <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}" ${soloLectura ? 'disabled' : ''}>
+            <input type="number" inputmode="decimal" pattern="[0-9]*" min="0" max="${c.PesoMax}" step="0.01" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}" ${soloLectura ? 'disabled' : ''}>
           </div>
         </div>`).join('')}
       <div class="panel-total" id="panel-total"></div>
-      <button class="primary-btn" id="btn-guardar">Guardar Puntuaciones</button>
+      ${soloLectura ? '' : `<button class="primary-btn" id="btn-guardar">Guardar Puntuaciones</button>`}
       <div id="save-status" style="text-align:center; margin-top:10px; font-size:13px; color:var(--text-dim);"></div>
     </div>`;
 
@@ -749,66 +775,76 @@ function abrirPanelPuntuacion(participante) {
   }
   actualizarTotalPanel();
 
-  STATE.criterios.forEach(c => {
-    const range = document.getElementById(`range-${c.ID}`);
-    const num = document.getElementById(`num-${c.ID}`);
-    const pesoMax = Number(c.PesoMax);
-    
-    num.addEventListener('focus', (e) => {
-      e.preventDefault();
-      requestAnimationFrame(() => num.select());
-    }, { passive: false });
+  if (!soloLectura) {
+    STATE.criterios.forEach(c => {
+      const range = document.getElementById(`range-${c.ID}`);
+      const num = document.getElementById(`num-${c.ID}`);
+      const pesoMax = Number(c.PesoMax);
 
-    range.addEventListener('input', (e) => {
-      let v = Math.min(pesoMax, Math.max(0, Number(range.value) || 0));
-      num.value = v.toFixed(2);
-      document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
-      actualizarTotalPanel();
-    });
+      num.addEventListener('focus', (e) => {
+        e.preventDefault();
+        requestAnimationFrame(() => num.select());
+      }, { passive: false });
 
-    num.addEventListener('input', (e) => {
-      let v = Number(num.value) || 0;
-      if (v > pesoMax) v = pesoMax;
-      range.value = v;
-      document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
-      actualizarTotalPanel();
-    });
+      range.addEventListener('input', (e) => {
+        let v = Math.min(pesoMax, Math.max(0, Number(range.value) || 0));
+        num.value = v.toFixed(2);
+        document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
+        actualizarTotalPanel();
+      });
 
-    num.addEventListener('blur', () => {
-      let v = Math.min(pesoMax, Math.max(0, Number(num.value) || 0));
-      num.value = v.toFixed(2);
+      num.addEventListener('input', (e) => {
+        let v = Number(num.value) || 0;
+        if (v > pesoMax) v = pesoMax;
+        range.value = v;
+        document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
+        actualizarTotalPanel();
+      });
+
+      num.addEventListener('blur', () => {
+        let v = Math.min(pesoMax, Math.max(0, Number(num.value) || 0));
+        num.value = v.toFixed(2);
+      });
     });
-  });
+  }
 
   document.getElementById('btn-volver').onclick = () => {
     wrap.innerHTML = '';
     document.getElementById('participantes-list').classList.remove('hidden');
   };
   
-  document.getElementById('btn-guardar').onclick = async () => {
-    const btn = document.getElementById('btn-guardar');
-    const status = document.getElementById('save-status');
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner spinner-sm"></span> Guardando calificaciones...`;
-    status.textContent = 'Enviando puntuaciones...';
-
-    for (const c of STATE.criterios) {
-      const puntaje = Number(document.getElementById(`num-${c.ID}`).value);
-      try {
-        await apiPost({ action: 'puntuar', juezId: STATE.juezActual.id, pin: STATE.pin, participanteId: participante.ID, criterioId: c.ID, puntaje });
-        STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
-      } catch(e) {
-        status.textContent = 'Error de comunicación al guardar.';
-        btn.disabled = false;
-        btn.textContent = 'Guardar Puntuaciones';
+  const btnGuardar = document.getElementById('btn-guardar');
+  if (btnGuardar) {
+    btnGuardar.onclick = async () => {
+      if (!STATE.puedeEditar && calcularTotalParticipante(participante.ID) !== null) {
+        // Salvaguarda adicional: si por alguna razón se intenta guardar sin permiso de edición, se bloquea.
+        document.getElementById('save-status').textContent = 'Tu usuario no tiene permiso para editar puntuaciones guardadas.';
         return;
       }
-    }
-    
-    status.textContent = '✓ Guardado exitosamente';
-    renderParticipantesJuez();
-    setTimeout(() => { wrap.innerHTML = ''; document.getElementById('participantes-list').classList.remove('hidden'); }, 800);
-  };
+      const btn = btnGuardar;
+      const status = document.getElementById('save-status');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner spinner-sm"></span> Guardando calificaciones...`;
+      status.textContent = 'Enviando puntuaciones...';
+
+      for (const c of STATE.criterios) {
+        const puntaje = Number(document.getElementById(`num-${c.ID}`).value);
+        try {
+          await apiPost({ action: 'puntuar', juezId: STATE.juezActual.id, pin: STATE.pin, participanteId: participante.ID, criterioId: c.ID, puntaje });
+          STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
+        } catch(e) {
+          status.textContent = 'Error de comunicación al guardar.';
+          btn.disabled = false;
+          btn.textContent = 'Guardar Puntuaciones';
+          return;
+        }
+      }
+
+      status.textContent = '✓ Guardado exitosamente';
+      renderParticipantesJuez();
+      setTimeout(() => { wrap.innerHTML = ''; document.getElementById('participantes-list').classList.remove('hidden'); }, 800);
+    };
+  }
 }
 
 /* Carga del Organizador y Desglose de Votos por Juez */
