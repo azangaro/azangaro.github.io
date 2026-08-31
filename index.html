@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Concurso de Danza — Puntuación Multiconcurso</title>
+<title>Sistema Multi-Concurso — Puntuación</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
@@ -38,16 +38,13 @@
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; min-height: 100%; background: var(--bg); color: var(--text); }
-  body { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 15px; line-height: 1.5; overflow-x: hidden; }
-
+  body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-font-smoothing: antialiased; font-size: 15px; line-height: 1.5; overflow-x: hidden; }
   h1, h2, h3 { font-family: 'Fraunces', serif; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+  .mono { font-family: 'Space Mono', monospace; }
   .hidden { display: none !important; }
   
   .view-container { animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-  @keyframes fadeInScale {
-    from { opacity: 0; transform: scale(0.98) translateY(8px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
-  }
+  @keyframes fadeInScale { from { opacity: 0; transform: scale(0.98) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
   button, input, select { font-family: inherit; outline: none; }
   button { cursor: pointer; border: none; transition: var(--transition); user-select: none; }
@@ -56,128 +53,192 @@
   .container { max-width: 500px; margin: 0 auto; padding: 0 16px 48px; }
   .container-wide { max-width: 1240px; margin: 0 auto; padding: 0 16px 48px; }
 
-  /* Selector de Concurso Global */
-  .concurso-bar {
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 10px 16px; display: flex; align-items: center; justify-content: center; gap: 10px;
-    position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px);
-  }
-  .concurso-bar label { font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
-  .concurso-bar select {
-    margin: 0; padding: 6px 12px; font-size: 14px; background: var(--surface-alt);
-    border-radius: var(--radius-sm); border: 1px solid var(--border); color: var(--text);
-    width: auto; max-width: 280px;
-  }
-
-  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px; max-width: 1000px; margin: 0 auto; }
-  .back-link {
-    display: inline-flex; align-items: center; gap: 8px; color: var(--text-dim);
-    text-decoration: none; font-size: 14px; font-weight: 700; padding: 10px 14px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 99px;
-  }
-  .live-pill {
-    display: inline-flex; align-items: center; gap: 8px; background: var(--live-soft);
-    color: var(--live); padding: 8px 14px; border-radius: 99px; font-size: 12px; font-weight: 800;
-    text-transform: uppercase; border: 1px solid rgba(79, 156, 109, 0.25);
-  }
+  .topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px; max-width: 1000px; margin: 0 auto; gap: 10px; }
+  .back-link { display: inline-flex; align-items: center; gap: 8px; color: var(--text-dim); text-decoration: none; font-size: 14px; font-weight: 700; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 99px; backdrop-filter: blur(10px); }
+  .back-link:active { background: var(--surface-alt); }
+  .live-pill { display: inline-flex; align-items: center; gap: 8px; background: var(--live-soft); color: var(--live); padding: 8px 14px; border-radius: 99px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; border: 1px solid rgba(79, 156, 109, 0.25); }
   .live-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); box-shadow: 0 0 10px var(--live); animation: pulse 1.8s infinite; }
   @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
+  /* Selector Global de Concurso */
+  .concurso-selector-bar { background: var(--surface-alt); padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 20px; text-align: left; }
+  .concurso-selector-bar label { display: block; font-size: 11px; text-transform: uppercase; font-weight: 800; color: var(--accent); margin-bottom: 6px; letter-spacing: 0.05em; }
+  .concurso-selector-bar select { margin-bottom: 0; background: var(--bg); }
+
   /* Landing Screen */
-  #view-landing { min-height: 85vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; text-align: center; }
-  .eyebrow { background: var(--accent-soft); color: var(--accent); padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 800; margin-bottom: 16px; border: 1px solid var(--accent-glow); }
-  #view-landing h1 { font-size: clamp(32px, 7vw, 48px); margin-bottom: 8px; font-weight: 600; font-style: italic; }
-  #view-landing p.sub { color: var(--text-dim); margin-bottom: 32px; font-size: 15px; }
+  #view-landing { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; text-align: center; position: relative; overflow: hidden; }
+  #view-landing::before { content: ''; position: absolute; top: -10%; left: 50%; width: 900px; height: 900px; transform: translateX(-50%); background: radial-gradient(circle, rgba(201,162,75,0.16) 0%, rgba(201,162,75,0.05) 38%, transparent 70%); pointer-events: none; z-index: 0; }
+  #view-landing > * { position: relative; z-index: 1; }
+  .eyebrow { background: var(--accent-soft); color: var(--accent); padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 800; margin-bottom: 16px; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid var(--accent-glow); }
+  #view-landing h1 { font-size: clamp(34px, 8vw, 52px); margin-bottom: 8px; font-weight: 600; font-style: italic; background: linear-gradient(180deg, var(--text) 0%, var(--text-dim) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  #view-landing p.sub { color: var(--text-dim); margin-bottom: 24px; font-size: 15px; }
   
   .role-grid { display: grid; gap: 12px; width: 100%; max-width: 420px; }
-  .role-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 20px; text-align: left; color: var(--text); text-decoration: none;
-    display: flex; align-items: center; gap: 16px; transition: var(--transition); box-shadow: var(--shadow);
-  }
-  .role-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-  .role-card .icon { width: 48px; height: 48px; border-radius: 14px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .role-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; text-align: left; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 16px; transition: var(--transition); box-shadow: var(--shadow); }
+  .role-card:hover, .role-card:focus-visible { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 12px 30px var(--accent-glow); }
+  .role-card .icon { width: 48px; height: 48px; border-radius: 14px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .role-card h3 { font-size: 17px; margin-bottom: 2px; font-weight: 700; }
+  .role-card p { margin: 0; font-size: 13px; color: var(--text-dim); }
 
-  /* Formularios y Botones */
+  /* Login Formulario */
   .login-box { background: var(--surface); border-radius: var(--radius-lg); padding: 28px 20px; border: 1px solid var(--border); box-shadow: var(--shadow); }
-  select { width: 100%; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-alt); color: var(--text); font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+  .login-box h2 { font-size: 24px; text-align: center; margin-bottom: 6px; }
+  .login-box .lead { text-align: center; color: var(--text-dim); font-size: 14px; margin-bottom: 24px; }
+  
+  select { width: 100%; padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-alt); color: var(--text); font-size: 15px; font-weight: 600; margin-bottom: 16px; transition: var(--transition); appearance: none; }
+  select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
   .pin-display { width: 100%; padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg); text-align: center; font-size: 28px; letter-spacing: 0.4em; margin-bottom: 16px; font-family: 'Space Mono', monospace; color: var(--accent); }
   .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
   .pin-pad button { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); height: 56px; font-size: 20px; font-weight: 700; }
+  .pin-pad button.wide { color: var(--text-dim); font-size: 15px; }
+
+  .primary-btn { width: 100%; height: 54px; background: var(--accent); color: var(--accent-ink); font-weight: 800; border-radius: var(--radius-sm); font-size: 16px; box-shadow: 0 8px 20px var(--accent-glow); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .primary-btn:disabled { opacity: 0.75; cursor: not-allowed; }
   
-  .primary-btn { width: 100%; height: 54px; background: var(--accent); color: var(--accent-ink); font-weight: 800; border-radius: var(--radius-sm); font-size: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-  .btn-export { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; }
+  .btn-export { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-export:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  /* Listado de Participantes */
+  /* Listado Participantes */
   .categoria-label { color: var(--accent); font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; margin: 24px 0 10px 4px; }
-  .participante-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; border: 1px solid var(--border); }
-  .participante-row.done { border-color: var(--live); }
-  .participante-row.disqualified { border-color: var(--danger); }
-  .participante-row button { background: var(--surface-alt); color: var(--text); padding: 10px 18px; border-radius: var(--radius-sm); font-weight: 700; border: 1px solid var(--border); }
+  .participante-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); border-radius: var(--radius); padding: 16px; margin-bottom: 10px; border: 1px solid var(--border); transition: var(--transition); }
+  .participante-row.done { border-color: var(--live); background: rgba(30, 26, 22, 0.6); }
+  .participante-row.disqualified { border-color: var(--danger); background: rgba(180, 69, 63, 0.08); }
+  .participante-row .name { font-weight: 700; font-size: 15px; }
+  .participante-row .status { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
+  .participante-row.done .status { color: var(--live); font-weight: 700; }
+  .participante-row.disqualified .status { color: var(--danger); font-weight: 700; }
+  .participante-row button { background: var(--surface-alt); color: var(--text); padding: 10px 18px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; border: 1px solid var(--border); flex-shrink: 0; min-height: 44px; }
 
-  /* Panel de Puntuación Táctil */
-  .score-panel { background: var(--surface); border-radius: var(--radius-lg); padding: 22px 18px; border: 1px solid var(--border); }
+  /* Panel Puntuación */
+  .score-panel { background: var(--surface); border-radius: var(--radius-lg); padding: 22px 18px; border: 1px solid var(--border); box-shadow: var(--shadow); }
+  .readonly-banner { background: var(--surface-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 13px; color: var(--text-dim); margin-bottom: 16px; font-weight: 600; }
   .criterio-row { background: var(--surface-alt); padding: 16px; border-radius: var(--radius); margin-bottom: 12px; border: 1px solid var(--border); }
   .criterio-row label { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; margin-bottom: 12px; }
   .criterio-row .row-inputs { display: flex; align-items: center; gap: 14px; }
   
   input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
-  input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; background: var(--bg); border-radius: 4px; }
-  input[type=range]::-webkit-slider-thumb { height: 26px; width: 26px; border-radius: 50%; background: var(--accent); -webkit-appearance: none; margin-top: -9px; }
+  input[type=range]:focus { outline: none; }
+  input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 8px; cursor: pointer; background: var(--bg); border-radius: 4px; }
+  input[type=range]::-webkit-slider-thumb { height: 26px; width: 26px; border-radius: 50%; background: var(--accent); cursor: pointer; -webkit-appearance: none; margin-top: -9px; box-shadow: 0 0 10px var(--accent-glow); }
+  input[type=range]:disabled::-webkit-slider-thumb { background: var(--text-dim); box-shadow: none; }
 
   input[type=number] { width: 75px; height: 44px; text-align: center; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg); color: var(--accent); font-family: 'Space Mono', monospace; font-size: 16px; font-weight: 700; }
 
   .panel-total { text-align: center; font-family: 'Space Mono', monospace; font-weight: 700; font-size: 20px; color: var(--live); background: var(--live-soft); border-radius: var(--radius-sm); padding: 14px; margin: 20px 0; border: 1px solid rgba(79, 156, 109, 0.25); }
-  .panel-total.disqualified { color: var(--danger); background: var(--danger-soft); }
+  .panel-total.disqualified { color: var(--danger); background: var(--danger-soft); border-color: rgba(180, 69, 63, 0.25); }
 
-  /* Tablas y Leaderboard */
+  /* Organizador */
   .org-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; }
-  tbody#org-tbody { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
-  .table-wrap tr { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; position: relative; padding-top: 42px; }
-  .table-wrap td { display: flex; flex-direction: column; padding: 8px 0; border: none; }
-  .table-wrap td::before { content: attr(data-label); color: var(--text-dim); font-size: 11px; font-weight: 800; text-transform: uppercase; }
-  .table-wrap td[data-label="#"] { position: absolute; top: 14px; left: 14px; width: 30px; height: 30px; border-radius: 50%; background: var(--surface-alt); display: flex; align-items: center; justify-content: center; font-family: 'Space Mono'; }
+  .org-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  
+  .table-wrap { background: transparent; }
+  table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+  thead { display: none; }
+  tbody#org-tbody { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; align-items: start; }
+  tbody#org-tbody > tr:has(td[colspan]) { grid-column: 1 / -1; display: block; background: transparent; border: none; box-shadow: none; padding: 0; }
+  tbody#org-tbody > tr:has(td[colspan]) td { padding: 0; display: block; }
+  
+  .table-wrap tr { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; align-content: start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); transition: var(--transition); position: relative; padding-top: 42px; }
+  .table-wrap td.detalle-contenido { grid-column: 1 / -1; background: rgba(20, 17, 14, 0.5); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 6px; }
+  .table-wrap td { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 8px 0; border: none; white-space: normal; }
+  .table-wrap td::before { content: attr(data-label); color: var(--text-dim); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; }
+
+  .table-wrap td[data-label="#"] { position: absolute; top: 14px; left: 14px; padding: 0; width: 30px; height: 30px; border-radius: 50%; background: var(--surface-alt); display: flex; align-items: center; justify-content: center; font-family: 'Space Mono', monospace; font-weight: 700; font-size: 13px; color: var(--text-dim); }
   .table-wrap td[data-label="#"]::before { display: none; }
-  .table-wrap td[data-label="Participante"] { grid-column: 1 / -1; margin-top: -30px; border-bottom: 1px solid var(--border); }
-  .table-wrap td[data-label="Total"] { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; background: var(--live-soft); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .table-wrap td[data-label="Participante"] { grid-column: 1 / -1; padding-left: 40px; padding-bottom: 10px; margin-bottom: 6px; border-bottom: 1px solid var(--border); margin-top: -30px; }
+  .table-wrap td[data-label="Participante"] strong { font-size: 16px; font-family: 'Fraunces', serif; font-weight: 600; }
+  .table-wrap td[data-label="Categoría"] { grid-column: 1 / -1; padding-top: 0; padding-bottom: 10px; margin-bottom: 6px; }
+  .table-wrap td[data-label="Total"] { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; background: var(--live-soft); border-radius: var(--radius-sm); padding: 10px 12px; margin: 6px 0; }
+  .table-wrap td[data-label="Total"].disqualified-bg { background: var(--danger-soft); }
+  .table-wrap td[data-label="Detalle"] { grid-column: 1 / -1; padding-top: 4px; }
+  .table-wrap td[data-label="Detalle"] button { width: 100%; justify-content: center; padding: 10px 14px; }
 
-  .lb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-  .lb-row { position: relative; padding: 16px; padding-top: 42px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
-  .lb-row .lb-rank { position: absolute; top: 14px; left: 14px; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Space Mono'; background: var(--surface-alt); }
+  .juez-badge { display: inline-block; padding: 3px 8px; background: var(--surface-alt); border-radius: 6px; font-size: 12px; font-weight: 600; margin-right: 6px; margin-bottom: 4px; }
+
+  /* Leaderboard / Público */
+  .lb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; align-items: start; }
+  .lb-row { position: relative; padding: 16px 16px 14px; padding-top: 42px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); transition: var(--transition); }
+  .lb-row.rank-1 { border-color: var(--accent); background: linear-gradient(90deg, var(--accent-soft) 0%, var(--surface) 65%); box-shadow: 0 10px 26px -12px var(--accent-glow); }
+  .lb-row.disqualified { border-color: var(--danger); background: rgba(180, 69, 63, 0.04); }
+  .lb-row .lb-rank { position: absolute; top: 14px; left: 14px; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Space Mono', monospace; font-weight: 700; font-size: 13px; background: var(--surface-alt); color: var(--text-dim); }
+  .lb-row.rank-1 .lb-rank { background: var(--accent); color: var(--accent-ink); box-shadow: 0 0 12px var(--accent-glow); }
+  .lb-name-block { padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .lb-name-block .lb-name { font-size: 16px; font-family: 'Fraunces', serif; font-weight: 600; }
+  .lb-name-block .lb-cat { font-size: 13px; color: var(--text-dim); margin-top: 2px; }
   .lb-total-pill { display: flex; align-items: center; justify-content: space-between; background: var(--live-soft); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .lb-total-pill.disqualified { background: var(--danger-soft); }
+  .lb-total { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 17px; color: var(--accent); }
+  .lb-total.disqualified { color: var(--danger); font-size: 15px; }
 
-  .spinner { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin 0.8s linear infinite; display: inline-block; }
+  .spinner { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin 0.8s linear infinite; display: inline-block; flex-shrink: 0; }
+  .spinner-sm { width: 16px; height: 16px; border-width: 2px; border-top-color: var(--accent-ink); }
+  .spinner-xs { width: 12px; height: 12px; border-width: 2px; border-top-color: var(--accent); vertical-align: middle; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px; color: var(--text-dim); }
 </style>
 </head>
 <body>
 
-<!-- BARRA DE SELECCIÓN DE CONCURSO -->
-<div class="concurso-bar">
-  <label for="global-concurso-select">🏆 Concurso:</label>
-  <select id="global-concurso-select" onchange="cambiarConcursoActivo(this.value)"></select>
-</div>
-
 <!-- LANDING -->
 <div id="view-landing" class="view-container">
-  <div class="eyebrow">Sistema Multiconcurso</div>
-  <h1 id="landing-concurso-titulo">Concurso de Danza</h1>
-  <p class="sub">Selecciona el perfil de acceso</p>
+  <div class="eyebrow">Sistema de puntuación</div>
+  <h1>Evaluación de Concursos</h1>
+  <p class="sub">Selecciona un concurso para empezar</p>
+  
+  <div style="width: 100%; max-width: 420px; margin-bottom: 20px;">
+    <div class="concurso-selector-bar">
+      <label for="select-concurso-global">Concurso Activo:</label>
+      <select id="select-concurso-global" onchange="cambiarConcursoSeleccionado(this.value)">
+        <option value="">Cargando concursos...</option>
+      </select>
+    </div>
+  </div>
+
   <div class="role-grid">
-    <a class="role-card" href="#jueces"><span class="icon">🎙️</span><span><h3>Jurado</h3><p>Calificación táctil por criterios.</p></span></a>
-    <a class="role-card" href="#organizador"><span class="icon">🗂️</span><span><h3>Organizador</h3><p>Seguimiento de tiempos y promedios.</p></span></a>
-    <a class="role-card" href="#publico"><span class="icon">🏆</span><span><h3>Pantalla Pública</h3><p>Tablero de resultados en vivo.</p></span></a>
+    <a class="role-card" href="#jueces">
+      <span class="icon">🎙️</span>
+      <span>
+        <h3>Jurado</h3>
+        <p>Calificación táctil por criterios.</p>
+      </span>
+    </a>
+    <a class="role-card" href="#organizador">
+      <span class="icon">🗂️</span>
+      <span>
+        <h3>Organizador</h3>
+        <p>Seguimiento de tiempos y promedios.</p>
+      </span>
+    </a>
+    <a class="role-card" href="#publico">
+      <span class="icon">🏆</span>
+      <span>
+        <h3>Pantalla Pública</h3>
+        <p>Tablero de resultados en vivo.</p>
+      </span>
+    </a>
   </div>
 </div>
 
 <!-- JUECES -->
 <div id="view-jueces" class="hidden view-container">
-  <div class="topbar"><a class="back-link" href="#">&larr; Inicio</a></div>
+  <div class="topbar">
+    <a class="back-link" href="#">&larr; Inicio</a>
+  </div>
   <div class="container">
+    <div class="concurso-selector-bar">
+      <label>Concurso:</label>
+      <select id="select-concurso-jueces" onchange="cambiarConcursoSeleccionado(this.value)"></select>
+    </div>
+
+    <div id="jueces-avisos"></div>
     <div id="jueces-login" class="login-box">
       <h2>Acceso Jurado</h2>
       <p class="lead">Selecciona tu usuario e ingresa el PIN</p>
-      <div id="login-loading" style="text-align:center; padding:20px;"><div class="spinner"></div> Cargando datos...</div>
+      <div id="login-loading" class="loading-state">
+        <div class="spinner"></div> Sincronizando...
+      </div>
       <div class="error-msg hidden" id="login-error"></div>
       <div id="login-fields" class="hidden">
         <select id="select-juez"></select>
@@ -205,20 +266,35 @@
     <span class="live-pill"><span class="dot"></span> EN VIVO</span>
   </div>
   <div class="container-wide">
+    <div class="concurso-selector-bar" style="max-width: 400px;">
+      <label>Concurso Activo:</label>
+      <select id="select-concurso-org" onchange="cambiarConcursoSeleccionado(this.value)"></select>
+    </div>
+
     <div class="org-header">
       <div>
         <h2>Panel del Organizador</h2>
         <p style="color: var(--text-dim); margin:0; font-size:14px;">Actualización automática cada 5s</p>
       </div>
-      <div>
+      <div class="org-actions">
         <button class="btn-export" onclick="exportarExcel()">📊 Excel</button>
         <button class="btn-export" onclick="exportarPDF()">📄 PDF</button>
       </div>
     </div>
+    <div id="org-avisos"></div>
     <div class="table-wrap">
       <table>
-        <thead><tr id="org-thead-row"></tr></thead>
-        <tbody id="org-tbody"></tbody>
+        <thead>
+          <tr id="org-thead-row"></tr>
+        </thead>
+        <tbody id="org-tbody">
+          <tr>
+            <td colspan="100%" style="text-align:center; padding: 40px;">
+              <div class="spinner"></div>
+              <div style="margin-top:10px; color:var(--text-dim); font-size:13px;">Cargando puntuaciones...</div>
+            </td>
+          </tr>
+        </tbody>
       </table>
     </div>
   </div>
@@ -231,39 +307,45 @@
     <span class="live-pill"><span class="dot"></span> EN VIVO</span>
   </div>
   <div class="container">
+    <div class="concurso-selector-bar">
+      <label>Concurso:</label>
+      <select id="select-concurso-publico" onchange="cambiarConcursoSeleccionado(this.value)"></select>
+    </div>
+
     <h1 style="text-align:center; margin: 20px 0;">Tabla de Posiciones</h1>
+    <div id="publico-avisos"></div>
     <div id="publico-leaderboard" class="lb-grid"></div>
   </div>
 </div>
 
 <script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbyrSTmY0vBt9qVnYaNQDICEQta7uz3q8os3EHM_0BMaxNYI6andefqB1SrTuPVqUJju/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbznfLXG0vsbnq9lqTIBOJPMuJHBntcx543V8fsvu3c_JyLwfMT98kVOPFgkEbkpklxT/exec';
 
-let STATE = {
-  concursos: [],
-  concursoActivoId: null,
-  jueces: [],
-  participantes: [],
-  criterios: [],
-  juezActual: null,
-  pin: '',
-  misPuntajes: {},
-  resultadosTimer: null,
-  ultimosResultados: null,
-  puedeEditar: true
+let STATE = { 
+  concursos: [], 
+  concursoId: null, 
+  jueces: [], 
+  participantes: [], 
+  criterios: [], 
+  juezActual: null, 
+  pin: '', 
+  misPuntajes: {}, 
+  resultadosTimer: null, 
+  ultimosResultados: null, 
+  puedeEditar: true 
 };
 
 async function apiGet(action, params = {}) {
   const url = new URL(API_URL);
   url.searchParams.set('action', action);
-  if (STATE.concursoActivoId) url.searchParams.set('concursoId', STATE.concursoActivoId);
+  if (STATE.concursoId) url.searchParams.set('concursoId', STATE.concursoId);
   for (const k in params) url.searchParams.set(k, params[k]);
   const res = await fetch(url.toString());
   return res.json();
 }
 
 async function apiPost(body) {
-  body.concursoId = STATE.concursoActivoId;
+  body.concursoId = STATE.concursoId;
   const res = await fetch(API_URL, { 
     method: 'POST', 
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -280,53 +362,83 @@ function permiteEditar(valor) {
   return v === 'si' || v === 'sí' || v === 'yes' || v === 'true' || v === '1' || v === 'x';
 }
 
-// Carga Inicial de Concursos
-async function CargarConcursos() {
-  const res = await apiGet('getConcursos');
-  if (res.ok && res.concursos.length > 0) {
-    STATE.concursos = res.concursos;
-    const select = document.getElementById('global-concurso-select');
-    select.innerHTML = res.concursos.map(c => `<option value="${c.ID}">${c.Nombre}</option>`).join('');
-    
-    // Concurso más reciente por defecto
-    STATE.concursoActivoId = res.concursos[0].ID;
-    select.value = STATE.concursoActivoId;
-    
-    actualizarTituloConcurso();
+async function cargarListaConcursos() {
+  if (STATE.concursos.length > 0) return;
+  const res = await fetch(`${API_URL}?action=getConcursos`);
+  const data = await res.json();
+  if (data.ok && data.concursos.length > 0) {
+    STATE.concursos = data.concursos;
+    const concursoGuardado = localStorage.getItem('danza_concurso_id');
+    const existe = STATE.concursos.find(c => c.ID === concursoGuardado);
+    STATE.concursoId = existe ? concursoGuardado : STATE.concursos[0].ID;
+    actualizarSelectsConcursos();
   }
 }
 
-function actualizarTituloConcurso() {
-  const c = STATE.concursos.find(x => String(x.ID) === String(STATE.concursoActivoId));
-  if (c) {
-    document.getElementById('landing-concurso-titulo').textContent = c.Nombre;
-  }
+function actualizarSelectsConcursos() {
+  const ids = ['select-concurso-global', 'select-concurso-jueces', 'select-concurso-org', 'select-concurso-publico'];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.innerHTML = STATE.concursos.map(c => `<option value="${c.ID}" ${c.ID === STATE.concursoId ? 'selected' : ''}>${c.Nombre}</option>`).join('');
+    }
+  });
 }
 
-async function cambiarConcursoActivo(id) {
-  STATE.concursoActivoId = id;
-  actualizarTituloConcurso();
+function cambiarConcursoSeleccionado(nuevoId) {
+  if (!nuevoId || nuevoId === STATE.concursoId) return;
+  STATE.concursoId = nuevoId;
+  localStorage.setItem('danza_concurso_id', nuevoId);
+  actualizarSelectsConcursos();
+  
+  // Limpiar sesión del juez al cambiar de concurso
+  localStorage.removeItem('danza_juez');
   STATE.juezActual = null;
-  STATE.pin = '';
+
   router();
 }
 
 const VIEWS = ['landing', 'jueces', 'organizador', 'publico'];
-function router() {
+async function router() {
+  await cargarListaConcursos();
   const hash = (location.hash || '#').slice(1);
   const view = VIEWS.includes(hash) ? hash : 'landing';
+  
   VIEWS.forEach(v => {
     const el = document.getElementById('view-' + v);
-    if(v === view) el.classList.remove('hidden');
-    else el.classList.add('hidden');
+    if(v === view) {
+      el.classList.remove('hidden');
+      el.style.animation = 'none';
+      el.offsetHeight;
+      el.style.animation = null;
+    } else {
+      el.classList.add('hidden');
+    }
   });
   
   clearInterval(STATE.resultadosTimer);
   if (view === 'jueces') initJueces();
-  if (view === 'organizador') { loadOrganizador(); STATE.resultadosTimer = setInterval(loadOrganizador, 5000); }
+  if (view === 'organizador') { 
+    showOrgSpinner();
+    loadOrganizador(); 
+    STATE.resultadosTimer = setInterval(loadOrganizador, 5000); 
+  }
   if (view === 'publico') { loadPublico(); STATE.resultadosTimer = setInterval(loadPublico, 4000); }
 }
 window.addEventListener('hashchange', router);
+
+function showOrgSpinner() {
+  const tbody = document.getElementById('org-tbody');
+  if (tbody && (!STATE.ultimosResultados || !STATE.ultimosResultados.resultados.length)) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="100%" style="text-align:center; padding:40px;">
+          <div class="spinner"></div>
+          <div style="margin-top:10px; color:var(--text-dim); font-size:13px;">Sincronizando tabla del organizador...</div>
+        </td>
+      </tr>`;
+  }
+}
 
 async function loadInit() {
   const data = await apiGet('init');
@@ -344,8 +456,8 @@ function renderPinPad() {
   ['1','2','3','4','5','6','7','8','9','⌫','0','✓'].forEach(k => {
     const btn = document.createElement('button');
     btn.textContent = k;
-    if (k === '⌫') { btn.onclick = () => { pinBuffer = pinBuffer.slice(0, -1); updatePinDisplay(); }; }
-    else if (k === '✓') { btn.onclick = () => document.getElementById('btn-login').click(); }
+    if (k === '⌫') { btn.className = 'wide'; btn.onclick = () => { pinBuffer = pinBuffer.slice(0, -1); updatePinDisplay(); }; }
+    else if (k === '✓') { btn.className = 'wide'; btn.onclick = () => document.getElementById('btn-login').click(); }
     else { btn.onclick = () => { if (pinBuffer.length < 6) pinBuffer += k; updatePinDisplay(); }; }
     pad.appendChild(btn);
   });
@@ -358,6 +470,7 @@ function updatePinDisplay() {
 async function initJueces() {
   document.getElementById('jueces-login').classList.remove('hidden');
   document.getElementById('jueces-panel').classList.add('hidden');
+  document.getElementById('login-error').classList.add('hidden');
   document.getElementById('login-loading').classList.remove('hidden');
   document.getElementById('login-fields').classList.add('hidden');
   pinBuffer = '';
@@ -372,12 +485,14 @@ async function initJueces() {
   const sel = document.getElementById('select-juez');
   sel.innerHTML = STATE.jueces.map(j => `<option value="${j.ID}">${j.Nombre}</option>`).join('');
 
-  const saved = localStorage.getItem('danza_juez_' + STATE.concursoActivoId);
+  const saved = localStorage.getItem('danza_juez');
   if (saved) {
-    const { juezId, pin, nombre } = JSON.parse(saved);
-    STATE.juezActual = { id: juezId, nombre };
-    STATE.pin = pin;
-    await entrarPanelJuez();
+    const { concursoId, juezId, pin, nombre } = JSON.parse(saved);
+    if (concursoId === STATE.concursoId) {
+      STATE.juezActual = { id: juezId, nombre };
+      STATE.pin = pin;
+      await entrarPanelJuez();
+    }
   }
 }
 
@@ -391,7 +506,7 @@ document.getElementById('btn-login').addEventListener('click', async () => {
   const btn = document.getElementById('btn-login');
   const juezId = document.getElementById('select-juez').value;
   btn.disabled = true;
-  btn.innerHTML = `<span class="spinner"></span> Verificando...`;
+  btn.innerHTML = `<span class="spinner spinner-sm"></span> Verificando...`;
   
   try {
     const res = await apiPost({ action: 'login', juezId, pin: pinBuffer });
@@ -401,19 +516,20 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     
     STATE.juezActual = { id: juezId, nombre: res.nombre };
     STATE.pin = pinBuffer;
-    localStorage.setItem('danza_juez_' + STATE.concursoActivoId, JSON.stringify({ juezId, pin: pinBuffer, nombre: res.nombre }));
+    localStorage.setItem('danza_juez', JSON.stringify({ concursoId: STATE.concursoId, juezId, pin: pinBuffer, nombre: res.nombre }));
     await entrarPanelJuez();
   } catch(e) {
     btn.disabled = false;
     btn.textContent = 'Ingresar al Panel';
-    showLoginError("Error de autenticación.");
+    showLoginError("Error de comunicación al autenticar.");
   }
 });
 
 document.getElementById('btn-logout').addEventListener('click', () => {
-  localStorage.removeItem('danza_juez_' + STATE.concursoActivoId);
+  localStorage.removeItem('danza_juez');
   STATE.juezActual = null;
   STATE.pin = '';
+  pinBuffer = '';
   document.getElementById('jueces-login').classList.remove('hidden');
   document.getElementById('jueces-panel').classList.add('hidden');
 });
@@ -422,7 +538,7 @@ async function entrarPanelJuez() {
   document.getElementById('jueces-login').classList.add('hidden');
   document.getElementById('jueces-panel').classList.remove('hidden');
   document.getElementById('juez-nombre').textContent = STATE.juezActual.nombre;
-  document.getElementById('participantes-list').innerHTML = `<div style="text-align:center; padding:20px;"><div class="spinner"></div> Cargando datos...</div>`;
+  document.getElementById('participantes-list').innerHTML = `<div class="loading-state"><div class="spinner"></div>Cargando datos...</div>`;
 
   const juezData = STATE.jueces.find(j => String(j.ID) === String(STATE.juezActual.id));
   STATE.puedeEditar = juezData ? permiteEditar(juezData.EDITAR) : false;
@@ -440,7 +556,8 @@ function calcularTotalParticipante(participanteId) {
     if (key in STATE.misPuntajes) {
       const p = Number(STATE.misPuntajes[key]);
       if (p === 0) descalificado = true;
-      total += p; count++; 
+      total += p; 
+      count++; 
     }
   });
   if (count !== STATE.criterios.length) return null;
@@ -468,13 +585,20 @@ function renderParticipantesJuez() {
     const row = document.createElement('div');
     row.className = 'participante-row' + (scored ? (isDescalificado ? ' disqualified' : ' done') : '');
     
-    let statusText = scored 
-      ? (isDescalificado ? '✕ DESCALIFICADO (Nota 0)' : `✓ Puntaje: ${res.total.toFixed(2)} pts`)
-      : 'Pendiente';
+    let statusText = 'Pendiente';
+    if (scored) {
+      statusText = isDescalificado ? '✕ DESCALIFICADO (Nota 0)' : `✓ Puntaje: ${res.total.toFixed(2)} pts`;
+    }
+
+    let botonLabel = 'Calificar';
+    if (scored) botonLabel = STATE.puedeEditar ? 'Editar' : 'Ver';
 
     row.innerHTML = `
-      <div><div class="name">${p.Nombre}</div><div class="status">${statusText}</div></div>
-      <button>${scored ? (STATE.puedeEditar ? 'Editar' : 'Ver') : 'Calificar'}</button>`;
+      <div>
+        <div class="name">${p.Nombre}</div>
+        <div class="status">${statusText}</div>
+      </div>
+      <button class="${soloLectura ? 'ver-only' : ''}">${botonLabel}</button>`;
     row.querySelector('button').onclick = () => abrirPanelPuntuacion(p, soloLectura);
     wrap.appendChild(row);
   });
@@ -492,17 +616,19 @@ function abrirPanelPuntuacion(participante, soloLectura = false) {
   wrap.innerHTML = `
     <div class="score-panel">
       <button class="back-link" id="btn-volver" style="margin-bottom:16px;">&larr; Volver</button>
-      <h3>${participante.Nombre}</h3>
+      <h3 style="margin-bottom: 20px;">${participante.Nombre}</h3>
+      ${soloLectura ? `<div class="readonly-banner">🔒 Puntuación guardada sin permiso de edición.</div>` : ''}
       ${STATE.criterios.map(c => `
         <div class="criterio-row">
-          <label><span>${c.Nombre}</span><span id="val-${c.ID}">${Number(valores[c.ID]).toFixed(2)} / ${c.PesoMax}</span></label>
+          <label><span>${c.Nombre}</span><span id="val-${c.ID}" style="color:var(--accent); font-family:'Space Mono';">${Number(valores[c.ID]).toFixed(2)} / ${c.PesoMax}</span></label>
           <div class="row-inputs">
             <input type="range" min="0" max="${c.PesoMax}" step="0.5" value="${valores[c.ID]}" id="range-${c.ID}" ${soloLectura ? 'disabled' : ''}>
-            <input type="number" min="0" max="${c.PesoMax}" step="0.01" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}" ${soloLectura ? 'disabled' : ''}>
+            <input type="number" inputmode="decimal" pattern="[0-9]*" min="0" max="${c.PesoMax}" step="0.01" value="${Number(valores[c.ID]).toFixed(2)}" id="num-${c.ID}" ${soloLectura ? 'disabled' : ''}>
           </div>
         </div>`).join('')}
       <div class="panel-total" id="panel-total"></div>
       ${soloLectura ? '' : `<button class="primary-btn" id="btn-guardar">Guardar Puntuaciones</button>`}
+      <div id="save-status" style="text-align:center; margin-top:10px; font-size:13px; color:var(--text-dim);"></div>
     </div>`;
 
   function actualizarTotalPanel() {
@@ -512,6 +638,7 @@ function abrirPanelPuntuacion(participante, soloLectura = false) {
       if (val === 0) tieneCero = true;
       total += val; 
     });
+    
     const panelTotalEl = document.getElementById('panel-total');
     if (tieneCero) {
       panelTotalEl.textContent = `ESTADO: DESCALIFICADO (Puntaje 0)`;
@@ -527,24 +654,30 @@ function abrirPanelPuntuacion(participante, soloLectura = false) {
     STATE.criterios.forEach(c => {
       const range = document.getElementById(`range-${c.ID}`);
       const num = document.getElementById(`num-${c.ID}`);
-      
+      const pesoMax = Number(c.PesoMax);
+
       num.addEventListener('focus', (e) => {
         e.preventDefault();
         requestAnimationFrame(() => num.select());
       }, { passive: false });
 
       range.addEventListener('input', () => {
-        num.value = Number(range.value).toFixed(2);
-        document.getElementById(`val-${c.ID}`).textContent = `${num.value} / ${c.PesoMax}`;
+        let v = Math.min(pesoMax, Math.max(0, Number(range.value) || 0));
+        num.value = v.toFixed(2);
+        document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
         actualizarTotalPanel();
       });
+
       num.addEventListener('input', () => {
-        range.value = num.value;
-        document.getElementById(`val-${c.ID}`).textContent = `${Number(num.value).toFixed(2)} / ${c.PesoMax}`;
+        let v = Number(num.value) || 0;
+        if (v > pesoMax) v = pesoMax;
+        range.value = v;
+        document.getElementById(`val-${c.ID}`).textContent = `${v.toFixed(2)} / ${c.PesoMax}`;
         actualizarTotalPanel();
       });
+
       num.addEventListener('blur', () => {
-        let v = Math.min(c.PesoMax, Math.max(0, Number(num.value) || 0));
+        let v = Math.min(pesoMax, Math.max(0, Number(num.value) || 0));
         num.value = v.toFixed(2);
       });
     });
@@ -558,65 +691,215 @@ function abrirPanelPuntuacion(participante, soloLectura = false) {
   const btnGuardar = document.getElementById('btn-guardar');
   if (btnGuardar) {
     btnGuardar.onclick = async () => {
-      btnGuardar.disabled = true;
+      const btn = btnGuardar;
+      const status = document.getElementById('save-status');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner spinner-sm"></span> Guardando calificaciones...`;
+      status.textContent = 'Enviando puntuaciones...';
+
       for (const c of STATE.criterios) {
         const puntaje = Number(document.getElementById(`num-${c.ID}`).value);
-        await apiPost({ action: 'puntuar', juezId: STATE.juezActual.id, pin: STATE.pin, participanteId: participante.ID, criterioId: c.ID, puntaje });
-        STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
+        try {
+          await apiPost({ action: 'puntuar', juezId: STATE.juezActual.id, pin: STATE.pin, participanteId: participante.ID, criterioId: c.ID, puntaje });
+          STATE.misPuntajes[participante.ID + '|' + c.ID] = puntaje;
+        } catch(e) {
+          status.textContent = 'Error de comunicación al guardar.';
+          btn.disabled = false;
+          btn.textContent = 'Guardar Puntuaciones';
+          return;
+        }
       }
+
+      status.textContent = '✓ Guardado exitosamente';
       renderParticipantesJuez();
-      wrap.innerHTML = '';
-      document.getElementById('participantes-list').classList.remove('hidden');
+      setTimeout(() => { wrap.innerHTML = ''; document.getElementById('participantes-list').classList.remove('hidden'); }, 800);
     };
   }
 }
 
+let ordenDetallesAbiertos = {};
+
+function obtenerVotosJueces(r) {
+  return r.votosJueces && Array.isArray(r.votosJueces) ? r.votosJueces : null;
+}
+
+function verificarDescalificacion(r, votosLista) {
+  if (r.descalificado) return true;
+  if (votosLista && Array.isArray(votosLista)) {
+    return votosLista.some(j => {
+      const notas = j.notas || j.puntajes || [];
+      return notas.some(n => Number(n.puntaje) === 0);
+    });
+  }
+  return false;
+}
+
 async function loadOrganizador() {
-  if (!STATE.criterios.length) await loadInit();
+  if (!STATE.concursoId) return;
   const data = await apiGet('resultados');
   if (!data.ok) return;
 
   STATE.ultimosResultados = data;
+
   const thead = document.getElementById('org-thead-row');
-  thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` + data.criterios.map(c => `<th>${c.Nombre}</th>`).join('') + `<th>Total</th>`;
+  thead.innerHTML = `<th>#</th><th>Participante</th><th>Categoría</th>` + data.criterios.map(c => `<th>${c.Nombre}</th>`).join('') + `<th>Total</th><th>Detalle</th>`;
+
+  data.resultados.sort((a, b) => {
+    const descA = verificarDescalificacion(a, obtenerVotosJueces(a));
+    const descB = verificarDescalificacion(b, obtenerVotosJueces(b));
+    if (descA && !descB) return 1;
+    if (!descA && descB) return -1;
+    return (Number(b.total) || 0) - (Number(a.total) || 0);
+  });
 
   const tbody = document.getElementById('org-tbody');
-  tbody.innerHTML = data.resultados.map((r, i) => `
-    <tr>
-      <td data-label="#">${i + 1}</td>
-      <td data-label="Participante"><strong>${r.nombre}</strong></td>
-      <td data-label="Categoría">${r.categoria || '—'}</td>
-      ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${Number(d.promedio || 0).toFixed(2)}</td>`).join('')}
-      <td data-label="Total"><strong>${Number(r.total || 0).toFixed(2)}</strong></td>
-    </tr>
-  `).join('');
+  let html = '';
+
+  data.resultados.forEach((r, i) => {
+    const isOpen = ordenDetallesAbiertos[r.id || r.ID || i];
+    const itemKey = r.id || r.ID || i;
+    const votosLista = obtenerVotosJueces(r);
+    const esDescalificado = verificarDescalificacion(r, votosLista);
+
+    const numJueces = votosLista ? votosLista.length : null;
+    const sufijoJueces = numJueces ? `<span style="color:var(--text-dim); font-weight:600; font-size:12px;"> /${numJueces}</span>` : '';
+    const textoTotal = esDescalificado 
+      ? `<span style="display:inline-flex; align-items:baseline; gap:4px;"><strong style="color:var(--danger);">DESCALIFICADO</strong>${sufijoJueces}</span>` 
+      : `<span style="display:inline-flex; align-items:baseline; gap:4px;"><strong style="color:var(--accent);">${Number(r.total || 0).toFixed(2)}</strong>${sufijoJueces}</span>`;
+
+    html += `
+      <tr>
+        <td data-label="#">${i + 1}</td>
+        <td data-label="Participante"><strong>${r.nombre || r.Nombre}</strong></td>
+        <td data-label="Categoría">${r.categoria || r.Categoria || '—'}</td>
+        ${r.detalle.map(d => `<td data-label="${d.criterioNombre}">${esDescalificado ? '-' : Number(d.promedio || 0).toFixed(2)}</td>`).join('')}
+        <td data-label="Total" class="${esDescalificado ? 'disqualified-bg' : ''}">${textoTotal}</td>
+        <td data-label="Detalle">
+          <button class="btn-export" id="btn-detalle-${itemKey}" style="padding:4px 8px; font-size:11px; min-width:84px;" onclick="toggleDetalle('${itemKey}')">
+            ${isOpen ? 'Ocultar ▲' : 'Ver Jueces ▼'}
+          </button>
+        </td>
+        ${isOpen ? `
+        <td class="detalle-contenido">
+          <div style="font-size:12px; color:var(--text-dim); margin-bottom:6px; font-weight:700;">DESGLOSE POR JUEZ</div>
+          ${votosLista ? votosLista.map(j => {
+            const notasJuez = j.notas || j.puntajes || [];
+            const juezTieneCero = notasJuez.some(n => Number(n.puntaje) === 0);
+            const totalJuez = notasJuez.reduce((sum, n) => sum + Number(n.puntaje || 0), 0);
+            return `
+            <div style="margin-bottom:10px; padding:8px 10px; background:rgba(255,255,255,0.03); border-radius:8px; border:1px solid var(--border);">
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:4px;">
+                <span class="juez-badge">${j.juezNombre || j.juez}</span>
+                <span style="font-size:13px; font-weight:800; color:${juezTieneCero ? 'var(--danger)' : 'var(--accent)'};">
+                  ${juezTieneCero ? 'DESCALIFICADO' : 'Puntaje Total: ' + totalJuez.toFixed(2)}
+                </span>
+              </div>
+              <div style="font-size:12px; color:var(--text-dim);">
+                ${notasJuez.map(n => `${n.criterio || n.criterioNombre}: <strong style="color:${Number(n.puntaje) === 0 ? 'var(--danger)' : 'var(--text)'};">${n.puntaje}</strong>`).join(' | ')}
+              </div>
+            </div>
+          `;
+          }).join('') : '<span style="font-size:12px; color:var(--text-dim);">Sin votos desglosados disponibles</span>'}
+        </td>` : ''}
+      </tr>`;
+  });
+
+  tbody.innerHTML = html;
+}
+
+async function toggleDetalle(id) {
+  ordenDetallesAbiertos[id] = !ordenDetallesAbiertos[id];
+  await loadOrganizador();
 }
 
 async function loadPublico() {
+  if (!STATE.concursoId) return;
   const data = await apiGet('resultados');
   if (!data.ok) return;
 
+  data.resultados.sort((a, b) => {
+    const descA = verificarDescalificacion(a, obtenerVotosJueces(a));
+    const descB = verificarDescalificacion(b, obtenerVotosJueces(b));
+    if (descA && !descB) return 1;
+    if (!descA && descB) return -1;
+    return (Number(b.total) || 0) - (Number(a.total) || 0);
+  });
+
   const wrap = document.getElementById('publico-leaderboard');
-  wrap.innerHTML = data.resultados.map((r, i) => `
-    <div class="lb-row">
-      <div class="lb-rank">${i + 1}</div>
-      <div class="lb-name-block">
-        <div style="font-weight:700;">${r.nombre}</div>
-        <div style="font-size:13px; color:var(--text-dim);">${r.categoria || '—'}</div>
+  wrap.innerHTML = data.resultados.map((r, i) => {
+    const votos = obtenerVotosJueces(r);
+    const esDescalificado = verificarDescalificacion(r, votos);
+
+    return `
+      <div class="lb-row ${i === 0 && !esDescalificado ? 'rank-1' : ''} ${esDescalificado ? 'disqualified' : ''}">
+        <div class="lb-rank">${i + 1}</div>
+        <div class="lb-name-block">
+          <div class="lb-name">${r.nombre || r.Nombre}</div>
+          <div class="lb-cat">${r.categoria || r.Categoria || '—'}</div>
+        </div>
+        <div class="lb-total-pill ${esDescalificado ? 'disqualified' : ''}">
+          <span class="lb-total-label">Total</span>
+          <span class="lb-total ${esDescalificado ? 'disqualified' : ''}">
+            ${esDescalificado ? 'DESCALIFICADO' : Number(r.total || 0).toFixed(2) + ' pts'}
+          </span>
+        </div>
       </div>
-      <div class="lb-total-pill">
-        <span>Total</span>
-        <strong style="color:var(--accent);">${Number(r.total || 0).toFixed(2)} pts</strong>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
-// Inicialización
-(async () => {
-  await CargarConcursos();
-  router();
-})();
+function exportarExcel() {
+  if (!STATE.ultimosResultados) return;
+  const data = STATE.ultimosResultados;
+  
+  const resumenRows = data.resultados.map((r, i) => {
+    const votos = obtenerVotosJueces(r);
+    const esDesc = verificarDescalificacion(r, votos);
+    const row = {
+      'Puesto': i + 1,
+      'Participante': r.nombre || r.Nombre,
+      'Categoría': r.categoria || r.Categoria || '—'
+    };
+    r.detalle.forEach(d => { row[d.criterioNombre] = esDesc ? '-' : Number(d.promedio || 0).toFixed(2); });
+    row['Total Promedio'] = esDesc ? 'DESCALIFICADO' : Number(r.total || 0).toFixed(2);
+    return row;
+  });
+
+  const wb = XLSX.utils.book_new();
+  const wsResumen = XLSX.utils.json_to_sheet(resumenRows);
+  XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen General");
+  XLSX.writeFile(wb, `Resultados_${STATE.concursoId}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function exportarPDF() {
+  if (!STATE.ultimosResultados) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape' });
+  const data = STATE.ultimosResultados;
+  
+  doc.setFontSize(18);
+  doc.text("Resultados Oficiales - Concurso", 14, 15);
+  doc.setFontSize(10);
+  doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 22);
+
+  const headersResumen = [['#', 'Participante', 'Categoría', ...data.criterios.map(c => c.Nombre), 'Total']];
+  const bodyResumen = data.resultados.map((r, i) => {
+    const votos = obtenerVotosJueces(r);
+    const esDesc = verificarDescalificacion(r, votos);
+    return [
+      i + 1,
+      r.nombre || r.Nombre,
+      r.categoria || r.Categoria || '—',
+      ...r.detalle.map(d => esDesc ? '-' : Number(d.promedio || 0).toFixed(2)),
+      esDesc ? 'DESCALIFICADO' : Number(r.total || 0).toFixed(2)
+    ];
+  });
+
+  doc.autoTable({ startY: 28, head: headersResumen, body: bodyResumen, theme: 'grid' });
+  doc.save(`Resultados_${STATE.concursoId}_${new Date().toISOString().slice(0,10)}.pdf`);
+}
+
+router();
 </script>
 </body>
 </html>
