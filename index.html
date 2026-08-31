@@ -172,16 +172,57 @@
   .lb-total { font-family: 'Space Mono', monospace; font-weight: 700; font-size: 17px; color: var(--accent); }
   .lb-total.disqualified { color: var(--danger); font-size: 15px; }
 
+  /* Animaciones e Íconos de Tiempo */
+  .time-spinner-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 42px;
+    height: 42px;
+  }
+  .time-spinner-container.sm {
+    width: 18px;
+    height: 18px;
+  }
+  .time-spinner-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin 1s linear infinite;
+  }
+  .time-spinner-container.sm .time-spinner-ring {
+    border-width: 2px;
+    border-top-color: var(--accent-ink);
+  }
+  .time-icon {
+    font-size: 20px;
+    animation: pulseHourglass 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .time-spinner-container.sm .time-icon {
+    font-size: 10px;
+  }
+
+  @keyframes pulseHourglass {
+    0%, 100% { transform: scale(0.9) rotate(0deg); opacity: 0.8; }
+    50% { transform: scale(1.1) rotate(180deg); opacity: 1; }
+  }
+
   .spinner { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin 0.8s linear infinite; display: inline-block; flex-shrink: 0; }
   .spinner-sm { width: 16px; height: 16px; border-width: 2px; border-top-color: var(--accent-ink); }
   .spinner-xs { width: 12px; height: 12px; border-width: 2px; border-top-color: var(--accent); vertical-align: middle; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px; color: var(--text-dim); }
+  .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 40px; color: var(--text-dim); }
 </style>
 </head>
 <body>
 
-<!-- LANDING -->
 <div id="view-landing" class="view-container">
   <div class="eyebrow">Sistema de puntuación</div>
   <h1>Evaluación de Concursos</h1>
@@ -221,7 +262,6 @@
   </div>
 </div>
 
-<!-- JUECES -->
 <div id="view-jueces" class="hidden view-container">
   <div class="topbar">
     <a class="back-link" href="#">&larr; Inicio</a>
@@ -237,7 +277,11 @@
       <h2>Acceso Jurado</h2>
       <p class="lead">Selecciona tu usuario e ingresa el PIN</p>
       <div id="login-loading" class="loading-state">
-        <div class="spinner"></div> Sincronizando...
+        <div class="time-spinner-container">
+          <div class="time-spinner-ring"></div>
+          <span class="time-icon">⏳</span>
+        </div>
+        <span>Sincronizando...</span>
       </div>
       <div class="error-msg hidden" id="login-error"></div>
       <div id="login-fields" class="hidden">
@@ -259,7 +303,6 @@
   </div>
 </div>
 
-<!-- ORGANIZADOR -->
 <div id="view-organizador" class="hidden view-container">
   <div class="topbar">
     <a class="back-link" href="#">&larr; Inicio</a>
@@ -290,8 +333,11 @@
         <tbody id="org-tbody">
           <tr>
             <td colspan="100%" style="text-align:center; padding: 40px;">
-              <div class="spinner"></div>
-              <div style="margin-top:10px; color:var(--text-dim); font-size:13px;">Cargando puntuaciones...</div>
+              <div class="time-spinner-container" style="margin: 0 auto 10px;">
+                <div class="time-spinner-ring"></div>
+                <span class="time-icon">⏱️</span>
+              </div>
+              <div style="color:var(--text-dim); font-size:13px;">Cargando puntuaciones...</div>
             </td>
           </tr>
         </tbody>
@@ -300,7 +346,6 @@
   </div>
 </div>
 
-<!-- PÚBLICO -->
 <div id="view-publico" class="hidden view-container">
   <div class="topbar" style="justify-content:center;">
     <a class="back-link" href="#" style="position:absolute; left:16px;">&larr;</a>
@@ -423,7 +468,11 @@ async function router() {
     loadOrganizador(); 
     STATE.resultadosTimer = setInterval(loadOrganizador, 5000); 
   }
-  if (view === 'publico') { loadPublico(); STATE.resultadosTimer = setInterval(loadPublico, 4000); }
+  if (view === 'publico') { 
+    showPublicoSpinner();
+    loadPublico(); 
+    STATE.resultadosTimer = setInterval(loadPublico, 4000); 
+  }
 }
 window.addEventListener('hashchange', router);
 
@@ -433,10 +482,27 @@ function showOrgSpinner() {
     tbody.innerHTML = `
       <tr>
         <td colspan="100%" style="text-align:center; padding:40px;">
-          <div class="spinner"></div>
-          <div style="margin-top:10px; color:var(--text-dim); font-size:13px;">Sincronizando tabla del organizador...</div>
+          <div class="time-spinner-container" style="margin:0 auto 10px;">
+            <div class="time-spinner-ring"></div>
+            <span class="time-icon">⏱️</span>
+          </div>
+          <div style="color:var(--text-dim); font-size:13px;">Sincronizando tabla del organizador...</div>
         </td>
       </tr>`;
+  }
+}
+
+function showPublicoSpinner() {
+  const wrap = document.getElementById('publico-leaderboard');
+  if (wrap && (!wrap.children.length || wrap.querySelector('.loading-state'))) {
+    wrap.innerHTML = `
+      <div class="loading-state" style="grid-column: 1 / -1;">
+        <div class="time-spinner-container">
+          <div class="time-spinner-ring"></div>
+          <span class="time-icon">⏳</span>
+        </div>
+        <span>Cargando posiciones en vivo...</span>
+      </div>`;
   }
 }
 
@@ -506,7 +572,12 @@ document.getElementById('btn-login').addEventListener('click', async () => {
   const btn = document.getElementById('btn-login');
   const juezId = document.getElementById('select-juez').value;
   btn.disabled = true;
-  btn.innerHTML = `<span class="spinner spinner-sm"></span> Verificando...`;
+  btn.innerHTML = `
+    <div class="time-spinner-container sm">
+      <div class="time-spinner-ring"></div>
+      <span class="time-icon">⌛</span>
+    </div>
+    <span>Verificando...</span>`;
   
   try {
     const res = await apiPost({ action: 'login', juezId, pin: pinBuffer });
@@ -538,7 +609,14 @@ async function entrarPanelJuez() {
   document.getElementById('jueces-login').classList.add('hidden');
   document.getElementById('jueces-panel').classList.remove('hidden');
   document.getElementById('juez-nombre').textContent = STATE.juezActual.nombre;
-  document.getElementById('participantes-list').innerHTML = `<div class="loading-state"><div class="spinner"></div>Cargando datos...</div>`;
+  document.getElementById('participantes-list').innerHTML = `
+    <div class="loading-state">
+      <div class="time-spinner-container">
+        <div class="time-spinner-ring"></div>
+        <span class="time-icon">⏳</span>
+      </div>
+      <span>Cargando datos...</span>
+    </div>`;
 
   const juezData = STATE.jueces.find(j => String(j.ID) === String(STATE.juezActual.id));
   STATE.puedeEditar = juezData ? permiteEditar(juezData.EDITAR) : false;
@@ -694,7 +772,12 @@ function abrirPanelPuntuacion(participante, soloLectura = false) {
       const btn = btnGuardar;
       const status = document.getElementById('save-status');
       btn.disabled = true;
-      btn.innerHTML = `<span class="spinner spinner-sm"></span> Guardando calificaciones...`;
+      btn.innerHTML = `
+        <div class="time-spinner-container sm">
+          <div class="time-spinner-ring"></div>
+          <span class="time-icon">⌛</span>
+        </div>
+        <span>Guardando calificaciones...</span>`;
       status.textContent = 'Enviando puntuaciones...';
 
       for (const c of STATE.criterios) {
