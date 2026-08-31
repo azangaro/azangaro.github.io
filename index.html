@@ -185,6 +185,10 @@
     width: 18px;
     height: 18px;
   }
+  .time-spinner-container.xs {
+    width: 14px;
+    height: 14px;
+  }
   .time-spinner-ring {
     position: absolute;
     inset: 0;
@@ -197,6 +201,10 @@
     border-width: 2px;
     border-top-color: var(--accent-ink);
   }
+  .time-spinner-container.xs .time-spinner-ring {
+    border-width: 2px;
+    border-top-color: var(--text-dim);
+  }
   .time-icon {
     font-size: 20px;
     animation: pulseHourglass 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
@@ -207,6 +215,9 @@
   }
   .time-spinner-container.sm .time-icon {
     font-size: 10px;
+  }
+  .time-spinner-container.xs .time-icon {
+    font-size: 8px;
   }
 
   @keyframes pulseHourglass {
@@ -219,6 +230,9 @@
   .spinner-xs { width: 12px; height: 12px; border-width: 2px; border-top-color: var(--accent); vertical-align: middle; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 40px; color: var(--text-dim); }
+
+  /* Botón de detalle en carga */
+  .btn-export.loading-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; opacity: 0.85; cursor: wait; }
 </style>
 </head>
 <body>
@@ -891,6 +905,19 @@ async function loadOrganizador() {
 }
 
 async function toggleDetalle(id) {
+  // Mostrar ícono de tiempo en el botón mientras se sincronizan los datos
+  const btn = document.getElementById(`btn-detalle-${id}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('loading-btn');
+    btn.innerHTML = `
+      <div class="time-spinner-container xs">
+        <div class="time-spinner-ring"></div>
+        <span class="time-icon">⏳</span>
+      </div>
+      <span>Cargando...</span>`;
+  }
+
   ordenDetallesAbiertos[id] = !ordenDetallesAbiertos[id];
   await loadOrganizador();
 }
