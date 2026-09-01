@@ -958,10 +958,21 @@ async function loadPublico() {
   }).join('');
 }
 
+function obtenerNombreConcursoActual() {
+  const concurso = STATE.concursos.find(c => c.ID === STATE.concursoId);
+  return concurso ? concurso.Nombre : STATE.concursoId;
+}
+
+function slugArchivo(texto) {
+  return String(texto).replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '');
+}
+
 function exportarExcel() {
   if (!STATE.ultimosResultados) return;
   const data = STATE.ultimosResultados;
-  
+  const nombreConcurso = obtenerNombreConcursoActual();
+  const fechaExport = new Date().toLocaleString();
+
   const resumenRows = data.resultados.map((r, i) => {
     const votos = obtenerVotosJueces(r);
     const esDesc = verificarDescalificacion(r, votos);
@@ -975,10 +986,57 @@ function exportarExcel() {
     return row;
   });
 
+  // Detalle por jurado: una fila por cada nota de cada juez
+  const detalleJuradoRows = [];
+  data.resultados.forEach(r => {
+    const votos = obtenerVotosJueces(r);
+    const participante = r.nombre || r.Nombre;
+    const categoria = r.categoria || r.Categoria || '—';
+    if (votos && votos.length) {
+      votos.forEach(j => {
+        const notas = j.notas || j.puntajes || [];
+        const juezNombre = j.juezNombre || j.juez || '—';
+        const juezTieneCero = notas.some(n => Number(n.puntaje) === 0);
+        const totalJuez = notas.reduce((sum, n) => sum + Number(n.puntaje || 0), 0);
+        if (notas.length) {
+          notas.forEach(n => {
+            detalleJuradoRows.push({
+              'Participante': participante,
+              'Categoría': categoria,
+              'Juez': juezNombre,
+              'Criterio': n.criterio || n.criterioNombre || '—',
+              'Puntaje': n.puntaje,
+              'Total Juez': juezTieneCero ? 'DESCALIFICADO' : totalJuez.toFixed(2)
+            });
+          });
+        } else {
+          detalleJuradoRows.push({ 'Participante': participante, 'Categoría': categoria, 'Juez': juezNombre, 'Criterio': '—', 'Puntaje': '—', 'Total Juez': '—' });
+        }
+      });
+    } else {
+      detalleJuradoRows.push({ 'Participante': participante, 'Categoría': categoria, 'Juez': 'Sin votos desglosados disponibles', 'Criterio': '—', 'Puntaje': '—', 'Total Juez': '—' });
+    }
+  });
+
   const wb = XLSX.utils.book_new();
-  const wsResumen = XLSX.utils.json_to_sheet(resumenRows);
+
+  const wsResumen = XLSX.utils.aoa_to_sheet([
+    [`Concurso: ${nombreConcurso}`],
+    [`Fecha de exportación: ${fechaExport}`],
+    []
+  ]);
+  XLSX.utils.sheet_add_json(wsResumen, resumenRows, { origin: -1 });
   XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen General");
-  XLSX.writeFile(wb, `Resultados_${STATE.concursoId}_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+  const wsDetalle = XLSX.utils.aoa_to_sheet([
+    [`Concurso: ${nombreConcurso}`],
+    [`Fecha de exportación: ${fechaExport}`],
+    []
+  ]);
+  XLSX.utils.sheet_add_json(wsDetalle, detalleJuradoRows, { origin: -1 });
+  XLSX.utils.book_append_sheet(wb, wsDetalle, "Detalle por Jurado");
+
+  XLSX.writeFile(wb, `Resultados_${slugArchivo(nombreConcurso)}_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 function exportarPDF() {
@@ -986,9 +1044,11 @@ function exportarPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: 'landscape' });
   const data = STATE.ultimosResultados;
-  
+  const nombreConcurso = obtenerNombreConcursoActual();
+  const pageHeight = doc.internal.pageSize.height;
+
   doc.setFontSize(18);
-  doc.text("Resultados Oficiales - Concurso", 14, 15);
+  doc.text(`Resultados Oficiales — ${nombreConcurso}`, 14, 15);
   doc.setFontSize(10);
   doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 22);
 
@@ -1006,7 +1066,46 @@ function exportarPDF() {
   });
 
   doc.autoTable({ startY: 28, head: headersResumen, body: bodyResumen, theme: 'grid' });
-  doc.save(`Resultados_${STATE.concursoId}_${new Date().toISOString().slice(0,10)}.pdf`);
+
+  // Tabla de detalle por jurado
+  const headersDetalle = [['Participante', 'Categoría', 'Juez', 'Criterio', 'Puntaje', 'Total Juez']];
+  const bodyDetalle = [];
+  data.resultados.forEach(r => {
+    const votos = obtenerVotosJueces(r);
+    const participante = r.nombre || r.Nombre;
+    const categoria = r.categoria || r.Categoria || '—';
+    if (votos && votos.length) {
+      votos.forEach(j => {
+        const notas = j.notas || j.puntajes || [];
+        const juezNombre = j.juezNombre || j.juez || '—';
+        const juezTieneCero = notas.some(n => Number(n.puntaje) === 0);
+        const totalJuez = notas.reduce((sum, n) => sum + Number(n.puntaje || 0), 0);
+        notas.forEach((n, idx) => {
+          bodyDetalle.push([
+            idx === 0 ? participante : '',
+            idx === 0 ? categoria : '',
+            idx === 0 ? juezNombre : '',
+            n.criterio || n.criterioNombre || '—',
+            n.puntaje,
+            idx === 0 ? (juezTieneCero ? 'DESCALIFICADO' : totalJuez.toFixed(2)) : ''
+          ]);
+        });
+      });
+    }
+  });
+
+  if (bodyDetalle.length) {
+    let finalY = doc.lastAutoTable.finalY || 28;
+    if (finalY + 30 > pageHeight) {
+      doc.addPage();
+      finalY = 10;
+    }
+    doc.setFontSize(14);
+    doc.text('Detalle por Jurado', 14, finalY + 12);
+    doc.autoTable({ startY: finalY + 16, head: headersDetalle, body: bodyDetalle, theme: 'grid', styles: { fontSize: 8 } });
+  }
+
+  doc.save(`Resultados_${slugArchivo(nombreConcurso)}_${new Date().toISOString().slice(0,10)}.pdf`);
 }
 
 router();
